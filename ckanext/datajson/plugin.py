@@ -184,18 +184,14 @@ class DataJsonController(BaseController):
         # output
         data = self.make_json(export_type='datajson', owner_org=org_id)
 
-       
-                            
-        if org_id is None:
-            #TODO: Bring this code (most of it) into the make_json method, get this working with org path as well
-            data_json_file = open('site_data.json', 'w')
-            #data_json_file.write(json.dumps(data, indent=2))
-            #json_iterate(jsonDict=dict(data), data_json_file)
-            data_json_file.close()
-
         return p.toolkit.literal(json.dumps(data, indent=2))
 
+    # TODO Rename to cache_data_json
+    # Update all calls to make_json to attempt to find relevant file cache
+    # If cache does not exist, call cache_data_json AND return message saying "Data is being created, please try route again in 20 minutes"
+    # See return_json for starting example
     def make_json(self, export_type='datajson', owner_org=None, with_private=False):
+        # TODO: open file based on organization or the entire site
         data_json_file = open('site_data.json', 'w')
         data_json_file = open('site_data.json', 'a')
 
@@ -216,31 +212,21 @@ class DataJsonController(BaseController):
 
         data = ''
         output = []
-        first_line = True
-        
-        
+
         errors_json = []
         Package2Pod.seen_identifiers = set()
 
         try:
-            # Build the data.json file.
-            # if owner_org:
-            #     if 'datajson' == export_type:
-            #         # we didn't check ownership for this type of export, so never load private datasets here
-            #         packages = DataJsonController._get_ckan_datasets(org=owner_org)
-            #         if not packages:
-            #             packages = self.get_packages(owner_org=owner_org, with_private=False)
-            #     else:
-            #         packages = self.get_packages(owner_org=owner_org, with_private=True)
-            # else:
-            #     # TODO: load data by pages
-            #     # packages = p.toolkit.get_action("current_package_list_with_resources")(
-            #     # None, {'limit': 50, 'page': 300})
-            #     packages = DataJsonController._get_ckan_datasets()
-            #     # packages = p.toolkit.get_action("current_package_list_with_resources")(None, {})
+            # Get transform mapping
+            json_export_map = get_export_map_json('export.map.json')
+            logger.error('transform_mapping: %s', json.dumps(json_export_map))
+
+            # Write json file starting info, and start the datasets array
+            data = Package2Pod.wrap_json_catalog(output, json_export_map)
+            data_json_file.write(json.dumps(data, indent=2).replace('}', '').replace(']', ''))
+
             n = 500
             page = 1
-            dataset_list = []
             q = '+capacity:public' if not with_private else '*:*'
             fq = 'dataset_type:dataset'
             if owner_org:
@@ -256,79 +242,44 @@ class DataJsonController(BaseController):
                 query = p.toolkit.get_action('package_search')({}, search_data_dict)
                 packages = query['results']
                 if len(query['results']):
-                    json_export_map = get_export_map_json('export.map.json')
-                    data = Package2Pod.wrap_json_catalog(output, json_export_map)
-                    if first_line:
-                        data_json_file.write(json.dumps(data, indent=2).replace('}', '').replace(']', ''))
-                        first_line = False
+                    for pkg in packages:
+                        if json_export_map.get('debug'):
+                            output.append(pkg)
+                        # logger.error('package: %s', json.dumps(pkg))
+                        # logger.debug("processing %s" % (pkg.get('title')))
+                        extras = dict([(x['key'], x['value']) for x in pkg.get('extras', {})])
 
-                    if json_export_map:
-                        for pkg in packages:
-                            if json_export_map.get('debug'):
-                                output.append(pkg)
-                            # logger.error('package: %s', json.dumps(pkg))
-                            # logger.debug("processing %s" % (pkg.get('title')))
-                            extras = dict([(x['key'], x['value']) for x in pkg.get('extras', {})])
+                        redaction_enabled = ('redacted' == export_type)
+                        datajson_entry = Package2Pod.convert_package(pkg, json_export_map, DataJsonPlugin.site_url, redaction_enabled)
 
-                            # unredacted = all non-draft datasets (public + private)
-                            # redacted = public-only, non-draft datasets
-                            if export_type in ['unredacted', 'redacted']:
-                                if 'Draft' == extras.get('publishing_status'):
-                                    # publisher = detect_publisher(extras)
-                                    # logger.warn("Dataset id=[%s], title=[%s], organization=[%s] omitted (%s)\n",
-                                    #             pkg.get('id'), pkg.get('title'), publisher,
-                                    #             'publishing_status: Draft')
-                                    # self._errors_json.append(OrderedDict([
-                                    #     ('id', pkg.get('id')),
-                                    #     ('name', pkg.get('name')),
-                                    #     ('title', pkg.get('title')),
-                                    #     ('errors', [(
-                                    #         'publishing_status: Draft',
-                                    #         [
-                                    #             'publishing_status: Draft'
-                                    #         ]
-                                    #     )])
-                                    # ]))
+                        errors = None
+                        if 'errors' in datajson_entry.keys():
+                            errors_json.append(datajson_entry)
+                            errors = datajson_entry.get('errors')
+                            datajson_entry = None
 
-                                    continue
-                                    # if 'redacted' == export_type and re.match(r'[Nn]on-public', extras.get('public_access_level')):
-                                    #     continue
-                            # draft = all draft-only datasets
-                            elif 'draft' == export_type:
-                                if 'publishing_status' not in extras.keys() or extras.get('publishing_status') != 'Draft':
-                                    continue
-
-                            redaction_enabled = ('redacted' == export_type)
-                            datajson_entry = Package2Pod.convert_package(pkg, json_export_map, DataJsonPlugin.site_url, redaction_enabled)
-
-                            errors = None
-                            if 'errors' in datajson_entry.keys():
-                                errors_json.append(datajson_entry)
-                                errors = datajson_entry.get('errors')
-                                datajson_entry = None
-
-                            if datajson_entry and \
-                                    (not json_export_map.get('validation_enabled') or self.is_valid(datajson_entry)):
-                                # logger.debug("writing to json: %s" % (pkg.get('title')))
-                                #TODO: Write data_json entry to file instead of array
-                                #output.append(datajson_entry)
-                                
-                                data_json_file.write(json.dumps(datajson_entry, indent=2)+',')
-                              #  else:
-                              #      data_json_file.write(json.dumps(datajson_entry, indent=2))
-                            else:
-                                publisher = detect_publisher(extras)
-                                if errors:
-                                    logger.warn("Dataset id=[%s], title=[%s], organization=[%s] omitted, reason below:\n\t%s\n",
-                                                pkg.get('id', None), pkg.get('title', None), pkg.get('organization').get('title'), errors)
-                                else:
-                                    logger.warn("Dataset id=[%s], title=[%s], organization=[%s] omitted, reason above.\n",
-                                                pkg.get('id', None), pkg.get('title', None), pkg.get('organization').get('title'))
-                        if 'datajson' == export_type:
-                            page += 1
+                        if datajson_entry and \
+                                (not json_export_map.get('validation_enabled') or self.is_valid(datajson_entry)):
+                            # logger.debug("writing to json: %s" % (pkg.get('title')))
+                            #TODO: Write data_json entry to file instead of array
+                            #output.append(datajson_entry)
+                            
+                            data_json_file.write(json.dumps(datajson_entry, indent=2)+',')
+                            #  else:
+                            #      data_json_file.write(json.dumps(datajson_entry, indent=2))
                         else:
-                            break
-                        # TODO: call this with empty array, strip out last bracket and curly brace, write this to file first
+                            publisher = detect_publisher(extras)
+                            if errors:
+                                logger.warn("Dataset id=[%s], title=[%s], organization=[%s] omitted, reason below:\n\t%s\n",
+                                            pkg.get('id', None), pkg.get('title', None), pkg.get('organization').get('title'), errors)
+                            else:
+                                logger.warn("Dataset id=[%s], title=[%s], organization=[%s] omitted, reason above.\n",
+                                            pkg.get('id', None), pkg.get('title', None), pkg.get('organization').get('title'))
+                    if 'datajson' == export_type:
+                        page += 1
+                    else:
+                        break
+                    # TODO: call this with empty array, strip out last bracket and curly brace, write this to file first
                 else:
                     data_json_file.write(']}')
                     break        

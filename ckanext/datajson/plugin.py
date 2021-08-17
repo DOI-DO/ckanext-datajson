@@ -123,10 +123,10 @@ class DataJsonController(BaseController):
             return self.generate_output('json')
 
     def generate_json(self):
-        return self.make_json(self, export_type='datajson', owner_org=None)
+        return self.make_json(export_type='datajson', owner_org=None)
 
     def generate_org_json(self, org_id):
-        return self.make_json(self, export_type='datajson', owner_org=org_id)
+        return self.make_json(export_type='datajson', owner_org=org_id)
 
     # def generate_jsonld(self):
     #     return self.generate_output('json-ld')
@@ -184,35 +184,28 @@ class DataJsonController(BaseController):
         # output
         data = self.make_json(export_type='datajson', owner_org=org_id)
 
-        # if fmt == 'json-ld':
-        #     # Convert this to JSON-LD.
-        #     data = OrderedDict([
-        #         ("@context", OrderedDict([
-        #             ("rdfs", "http://www.w3.org/2000/01/rdf-schema#"),
-        #             ("dcterms", "http://purl.org/dc/terms/"),
-        #             ("dcat", "http://www.w3.org/ns/dcat#"),
-        #             ("foaf", "http://xmlns.com/foaf/0.1/"),
-        #         ])),
-        #         ("@id", DataJsonPlugin.ld_id),
-        #         ("@type", "dcat:Catalog"),
-        #         ("dcterms:title", DataJsonPlugin.ld_title),
-        #         ("rdfs:label", DataJsonPlugin.ld_title),
-        #         ("foaf:homepage", DataJsonPlugin.site_url),
-        #         ("dcat:dataset", [dataset_to_jsonld(d) for d in data.get('dataset')]),
-        #     ])
+       
                             
         if org_id is None:
             #TODO: Bring this code (most of it) into the make_json method, get this working with org path as well
             data_json_file = open('site_data.json', 'w')
             #data_json_file.write(json.dumps(data, indent=2))
-            json_iterate(jsonDict=dict(data), data_json_file)
+            #json_iterate(jsonDict=dict(data), data_json_file)
             data_json_file.close()
 
         return p.toolkit.literal(json.dumps(data, indent=2))
 
-    def make_json(self, export_type='datajson', owner_org=None):
+    def make_json(self, export_type='datajson', owner_org=None, with_private=False):
         data_json_file = open('site_data.json', 'w')
         data_json_file = open('site_data.json', 'a')
+
+        response.content_type = 'application/json; charset=UTF-8'
+
+        # allow caching of response (e.g. by Apache)
+        del response.headers["Cache-Control"]
+        del response.headers["Pragma"]
+
+        
         # Error handler for creating error log
         stream = StringIO.StringIO()
         eh = logging.StreamHandler(stream)
@@ -223,8 +216,9 @@ class DataJsonController(BaseController):
 
         data = ''
         output = []
-        data = Package2Pod.wrap_json_catalog(output, json_export_map)
-        data_json_file.write(json.dumps(data).rstrip('{').rstrip('['))
+        first_line = True
+        
+        
         errors_json = []
         Package2Pod.seen_identifiers = set()
 
@@ -249,8 +243,8 @@ class DataJsonController(BaseController):
             dataset_list = []
             q = '+capacity:public' if not with_private else '*:*'
             fq = 'dataset_type:dataset'
-            if org:
-                fq += " AND organization:" + org
+            if owner_org:
+                fq += " AND organization:" + owner_org
             while True:
                 search_data_dict = {
                     'q': q,
@@ -260,8 +254,13 @@ class DataJsonController(BaseController):
                     'start': n * (page - 1),
                 }
                 query = p.toolkit.get_action('package_search')({}, search_data_dict)
+                packages = query['results']
                 if len(query['results']):
                     json_export_map = get_export_map_json('export.map.json')
+                    data = Package2Pod.wrap_json_catalog(output, json_export_map)
+                    if first_line:
+                        data_json_file.write(json.dumps(data, indent=2).replace('}', '').replace(']', ''))
+                        first_line = False
 
                     if json_export_map:
                         for pkg in packages:
@@ -301,6 +300,7 @@ class DataJsonController(BaseController):
 
                             redaction_enabled = ('redacted' == export_type)
                             datajson_entry = Package2Pod.convert_package(pkg, json_export_map, DataJsonPlugin.site_url, redaction_enabled)
+
                             errors = None
                             if 'errors' in datajson_entry.keys():
                                 errors_json.append(datajson_entry)
@@ -312,7 +312,10 @@ class DataJsonController(BaseController):
                                 # logger.debug("writing to json: %s" % (pkg.get('title')))
                                 #TODO: Write data_json entry to file instead of array
                                 #output.append(datajson_entry)
-                                data_json_file.write(json.dumps(datajson_entry))
+                                
+                                data_json_file.write(json.dumps(datajson_entry, indent=2)+',')
+                              #  else:
+                              #      data_json_file.write(json.dumps(datajson_entry, indent=2))
                             else:
                                 publisher = detect_publisher(extras)
                                 if errors:
@@ -321,8 +324,14 @@ class DataJsonController(BaseController):
                                 else:
                                     logger.warn("Dataset id=[%s], title=[%s], organization=[%s] omitted, reason above.\n",
                                                 pkg.get('id', None), pkg.get('title', None), pkg.get('organization').get('title'))
+                        if 'datajson' == export_type:
+                            page += 1
+                        else:
+                            break
                         # TODO: call this with empty array, strip out last bracket and curly brace, write this to file first
-                        data_json_file.write(']}')
+                else:
+                    data_json_file.write(']}')
+                    break        
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             filename = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
@@ -336,13 +345,12 @@ class DataJsonController(BaseController):
         stream.close()
 
         # Skip compression if we export whole /data.json catalog
-        if 'datajson' == export_type:
-            return data
-                    page += 1
-                else:
-                    break
+        data_json_file.close()
+        data_json_file = open('site_data.json', 'r')
+        json_vals = data_json_file.read()
+        json_vals = json_vals[0:-3] + '' + json_vals[-2:]
 
-        return self.write_zip(data, error, errors_json, zip_name=export_type)
+        return p.toolkit.literal(json_vals)
 
     def get_packages(self, owner_org, with_private=True):
         # Build the data.json file.

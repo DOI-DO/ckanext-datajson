@@ -297,11 +297,18 @@ class DataJsonController(BaseController):
 
         # Skip compression if we export whole /data.json catalog
         data_json_file.close()
-        data_json_file = open('site_data.json', 'r')
-        json_vals = data_json_file.read()
-        json_vals = json_vals[0:-3] + '' + json_vals[-2:]
+        with open('site_data.json', mode='r+') as data_json_file:
+            data_json_file.seek(0, os.SEEK_END)
+            pos = data_json_file.tell() - 3
+            data_json_file.seek(pos, os.SEEK_SET)
+            data_json_file.truncate()
+            data_json_file.write(']}')
+        data_json_file.close()
+        data_json_file = open('site_data.json', mode='r')
+        #json_vals = data_json_file.read()
+        #json_vals = json_vals[0:-3] + '' + json_vals[-2:]
 
-        return p.toolkit.literal(json_vals)
+        return p.toolkit.literal(data_json_file.read())
 
     def get_packages(self, owner_org, with_private=True):
         # Build the data.json file.

@@ -76,8 +76,11 @@ class DataJsonPlugin(p.SingletonPlugin):
             m.connect('datajson_creation', DataJsonPlugin.cache_path,
                       controller='ckanext.datajson.plugin:DataJsonController', action='generate_json')
 
-            m.connect('organization_export', '/organization/{org_id}/data.json',
-                      controller='ckanext.datajson.plugin:DataJsonController', action='generate_org_json')
+            m.connect('organization_export', '/organization/{org_id}' + DataJsonPlugin.route_path,
+                      controller='ckanext.datajson.plugin:DataJsonController', action='return_json')
+
+            m.connect('organization_creation', '/organization/{org_id}' + DataJsonPlugin.cache_path,
+                      controller='ckanext.datajson.plugin:DataJsonController', action='generate_json')
             # TODO commenting out enterprise data inventory for right now
             # m.connect('enterprisedatajson', DataJsonPlugin.route_edata_path,
             # controller='ckanext.datajson.plugin:DataJsonController', action='generate_enterprise')
@@ -105,9 +108,13 @@ class DataJsonPlugin(p.SingletonPlugin):
 class DataJsonController(BaseController):
     _errors_json = []
 
-    def return_json(self):
+    def return_json(self, org_id=None):
         try:
-            data_json_file = open('site_data.json')
+            file_path = 'site_data.json'
+            if(org_id is not None and org_id != 'None'):
+                file_path = '{}_data.json'.format(org_id)
+
+            data_json_file = open(file_path)
             cached_json = data_json_file.read()
             response.content_type = 'application/json; charset=UTF-8'
 
@@ -118,12 +125,15 @@ class DataJsonController(BaseController):
             return p.toolkit.literal(cached_json)
         except:
             # Either the file doesn't exist, or something is wrong.
-            # Generate the file on the fly.
+            # TODO: redirect to current_url/cache_data.json to create the cached file
             logger.debug("The datajson file doesn't exist, creating it")
-            return self.generate_output('json')
+            # return self.generate_output('json')
 
-    def generate_json(self):
-        return self.make_json(export_type='datajson', owner_org=None)
+    def generate_json(self, org_id=None):
+        # TODO: Add threading here.
+        # Return response of 200, with message of creating cache.
+        # Then call make_json inside the thread
+        return self.make_json(export_type='datajson', owner_org=org_id)
 
     def generate_org_json(self, org_id):
         return self.make_json(export_type='datajson', owner_org=org_id)

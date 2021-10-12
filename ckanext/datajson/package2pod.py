@@ -9,6 +9,7 @@ import sys
 import json
 import ckan.plugins.toolkit as tk
 import collections
+import ckan.plugins.toolkit as toolkit
 
 from logging import getLogger
 
@@ -16,6 +17,9 @@ from helpers import *
 from ckan import logic
 from ckan import model
 import ckan.plugins as p
+import ckan
+import urllib
+import datajsonvalidator
 
 log = getLogger(__name__)
 
@@ -378,9 +382,11 @@ class Wrappers:
             else:
                 email = package.get(contact_point_map.get('hasEmail').get('field'),
                                     package.get('maintainer_email'))
+            
 
             if email and not is_redacted(email) and '@' in email:
-                email = 'mailto:' + email
+                if 'mailto:' not in email:
+                    email = 'mailto:' + email
 
             if Wrappers.redaction_enabled:
                 redaction_reason = get_extra(package, 'redacted_' + contact_point_map.get('hasEmail').get('field'),
@@ -393,9 +399,26 @@ class Wrappers:
             contact_point = OrderedDict([('@type', 'vcard:Contact')])
             if fn:
                 contact_point['fn'] = fn
-            if email:
-                contact_point['hasEmail'] = email
+            else:
+                contact_point['fn'] = package.get('organization').get('title')
 
+            def get_default_email():
+                org_extras = toolkit.get_action('organization_show')(None, {
+                    'id':package.get('organization').get('name')
+                    })['extras']
+                for entry in org_extras:
+                    for key, value in entry.items():
+                        if entry[key] == 'default_org_email':
+                            default_email = entry['value']
+                return default_email if 'mailto:' in default_email else 'mailto:' + default_email
+            
+            if email:
+                if re.search('^mailto:[\w\_\~\!\$\&\'\(\)\*\+\,\;\=\:.-]+@[\w.-]+\.[\w.-]+?$', email):
+                    contact_point['hasEmail'] = email
+                else:
+                    contact_point['hasEmail'] = get_default_email()
+            else:
+                contact_point['hasEmail'] = get_default_email()
             return contact_point
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -425,6 +448,7 @@ class Wrappers:
             return arr
 
         for r in package["resources"]:
+            valid_resource = True
             resource = OrderedDict([('@type', "dcat:Distribution")])
 
             for pod_key, json_map in distribution_map.iteritems():
@@ -460,16 +484,23 @@ class Wrappers:
                 if 'mediaType' in resource:
                     if 'accessURL' in resource:
                         resource.pop('accessURL')
-                    resource['downloadURL'] = res_url
+                    if not datajsonvalidator.check_url_field(True, resource, 'downloadURL', None, {}):
+                        resource['downloadURL'] = urllib.quote(res_url.replace('URL:', '').strip())
+                        if not datajsonvalidator.check_url_field(True, resource, 'downloadURL', None, {}):
+                            valid_resource = False
                 else:
-                    resource['accessURL'] = res_url
+                    if not datajsonvalidator.check_url_field(True, resource, 'accessURL', None, {}):
+                        resource['accessURL'] = urllib.quote(res_url.replace('URL:', '').strip())
+                        if not datajsonvalidator.check_url_field(True, resource, 'accessURL', None, {}):
+                            valid_resource = False
             else:
                 log.warn("Missing downloadURL for resource in package ['%s']", package.get('id'))
 
+
             striped_resource = OrderedDict(
                 [(x, y) for x, y in resource.iteritems() if y is not None and y != "" and y != []])
-
-            arr += [OrderedDict(striped_resource)]
+            if valid_resource:
+                arr += [OrderedDict(striped_resource)]
 
         # Add full metadata link to distribution, as described here:
         # https://github.com/GSA/ckanext-datajson/tree/main/ckanext/datajson/tests/datajson-samples#geospatial-full-metadata-link-example

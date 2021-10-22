@@ -416,9 +416,15 @@ class Wrappers:
                 if re.search('^mailto:[\w\_\~\!\$\&\'\(\)\*\+\,\;\=\:.-]+@[\w.-]+\.[\w.-]+?$', email):
                     contact_point['hasEmail'] = email
                 else:
-                    contact_point['hasEmail'] = get_default_email()
+                    try:
+                        contact_point['hasEmail'] = get_default_email()
+                    except:
+                        contact_point['hasEmail'] = ''
             else:
-                contact_point['hasEmail'] = get_default_email()
+                try:
+                    contact_point['hasEmail'] = get_default_email()
+                except:
+                    contact_point['hasEmail'] = '' 
             return contact_point
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -442,6 +448,7 @@ class Wrappers:
 
         arr = []
         package = Wrappers.pkg
+        log.info(package.get('title'))
 
         distribution_map = Wrappers.full_field_map.get('distribution').get('map')
         if not distribution_map or 'resources' not in package:
@@ -479,20 +486,23 @@ class Wrappers:
                 res_url = Package2Pod.filter(res_url)
 
             if res_url:
-                res_url = res_url.replace('http://[[REDACTED', '[[REDACTED')
-                res_url = res_url.replace('http://http', 'http')
-                if 'mediaType' in resource:
-                    if 'accessURL' in resource:
-                        resource.pop('accessURL')
-                    if not datajsonvalidator.check_url_field(True, resource, 'downloadURL', None, {}):
-                        resource['downloadURL'] = urllib.quote(res_url.replace('URL:', '').strip())
+                try:
+                    res_url = res_url.replace('http://[[REDACTED', '[[REDACTED')
+                    res_url = res_url.replace('http://http', 'http')
+                    if 'mediaType' in resource:
+                        if 'accessURL' in resource:
+                            resource.pop('accessURL')
                         if not datajsonvalidator.check_url_field(True, resource, 'downloadURL', None, {}):
-                            valid_resource = False
-                else:
-                    if not datajsonvalidator.check_url_field(True, resource, 'accessURL', None, {}):
-                        resource['accessURL'] = urllib.quote(res_url.replace('URL:', '').strip())
+                            resource['downloadURL'] = urllib.quote(res_url.replace('URL:', '').strip())
+                            if not datajsonvalidator.check_url_field(True, resource, 'downloadURL', None, {}):
+                                valid_resource = False
+                    else:
                         if not datajsonvalidator.check_url_field(True, resource, 'accessURL', None, {}):
-                            valid_resource = False
+                            resource['accessURL'] = urllib.quote(res_url.replace('URL:', '').strip())
+                            if not datajsonvalidator.check_url_field(True, resource, 'accessURL', None, {}):
+                                valid_resource = False
+                except:
+                    valid_resource = False
             else:
                 log.warn("Missing downloadURL for resource in package ['%s']", package.get('id'))
 

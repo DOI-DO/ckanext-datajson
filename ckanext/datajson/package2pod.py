@@ -493,14 +493,14 @@ class Wrappers:
                         if 'accessURL' in resource:
                             resource.pop('accessURL')
                         if not datajsonvalidator.check_url_field(True, resource, 'downloadURL', None, {}):
-                            resource['downloadURL'] = urllib.quote(res_url.replace('URL:', '').strip())
-                            if not datajsonvalidator.check_url_field(True, resource, 'downloadURL', None, {}):
-                                valid_resource = False
+                            # resource['downloadURL'] = urllib.quote(res_url.replace('URL:', '').strip())
+                            # if not datajsonvalidator.check_url_field(True, resource, 'downloadURL', None, {}):
+                            valid_resource = False
                     else:
                         if not datajsonvalidator.check_url_field(True, resource, 'accessURL', None, {}):
-                            resource['accessURL'] = urllib.quote(res_url.replace('URL:', '').strip())
-                            if not datajsonvalidator.check_url_field(True, resource, 'accessURL', None, {}):
-                                valid_resource = False
+                            # resource['accessURL'] = urllib.quote(res_url.replace('URL:', '').strip())
+                            # if not datajsonvalidator.check_url_field(True, resource, 'accessURL', None, {}):
+                            valid_resource = False
                 except:
                     valid_resource = False
             else:

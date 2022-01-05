@@ -230,6 +230,7 @@ class Wrappers(object):
     full_field_map = None
     bureau_code_list = None
     resource_formats = None
+    modified_date = None
 
     @staticmethod
     def catalog_publisher(value):

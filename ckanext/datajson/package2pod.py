@@ -231,6 +231,7 @@ class Wrappers(object):
     bureau_code_list = None
     resource_formats = None
     modified_date = None
+    ckan_identifier = None
 
     @staticmethod
     def catalog_publisher(value):

@@ -10,7 +10,9 @@ except ImportError:
 import re
 from logging import getLogger
 
+import ckan.plugins as p
 import ckan.plugins.toolkit as toolkit
+from ckan import logic, model
 from ckan.lib import helpers as h
 
 from . import datajsonvalidator, helpers
@@ -459,23 +461,25 @@ class Wrappers(object):
                     res_url = '[[REDACTED-EX ' + r.get('redacted_url') + ']]'
             else:
                 res_url = Package2Pod.filter(res_url)
-
+            
             if res_url:
-                res_url = res_url.replace('http://[[REDACTED', '[[REDACTED')
-                res_url = res_url.replace('http://http', 'http')
-
-                if r.get('format') in ['API', 'api', 'accessurl']:
-                    resource['accessURL'] = res_url
+                try:
+                    res_url = res_url.replace('http://[[REDACTED', '[[REDACTED')
+                    res_url = res_url.replace('http://http', 'http')
                     if 'mediaType' in resource:
-                        resource.pop('mediaType')
-                        valid_resource = datajsonvalidator.check_url_field(True, resource, 'accessURL', None, {})
-                else:
-                    if 'accessURL' in resource:
-                        resource.pop('accessURL')
-                    resource['downloadURL'] = res_url
-                    valid_resource = datajsonvalidator.check_url_field(True, resource, 'downloadURL', None, {})
-                    if 'mediaType' not in resource:
-                        log.warn("Missing mediaType for resource in package ['%s']", package.get('id'))
+                        if 'accessURL' in resource:
+                            resource.pop('accessURL')
+                        if not datajsonvalidator.check_url_field(True, resource, 'downloadURL', None, {}):
+                            # resource['downloadURL'] = urllib.quote(res_url.replace('URL:', '').strip())
+                            # if not datajsonvalidator.check_url_field(True, resource, 'downloadURL', None, {}):
+                            valid_resource = False
+                    else:
+                        if not datajsonvalidator.check_url_field(True, resource, 'accessURL', None, {}):
+                            # resource['accessURL'] = urllib.quote(res_url.replace('URL:', '').strip())
+                            # if not datajsonvalidator.check_url_field(True, resource, 'accessURL', None, {}):
+                            valid_resource = False
+                except:
+                    valid_resource = False
             else:
                 log.warn("Missing downloadURL for resource in package ['%s']", package.get('id'))
 
@@ -483,6 +487,29 @@ class Wrappers(object):
                 [(x, y) for x, y in resource.items() if y is not None and y != "" and y != []])
             if valid_resource:
                 arr += [OrderedDict(striped_resource)]
+
+            try:
+                for e in package['extras']:
+                    if e['key'] == 'harvest_object_id':
+                        try:
+                            harvest_object_id = e['value']
+                        except:
+                            log.warn('Unable to retrieve harvest objext id')
+                        # Get full harvest object
+                        context = {'model': model, 'user': p.toolkit.c.user or p.toolkit.c.author}
+                        harvest_obj = logic.get_action('harvest_object_show')(context, {'id': harvest_object_id})
+
+                        # Build full metadata link
+                        resource = OrderedDict([('@type', "dcat:Distribution")])
+                        resource["title"] = "Original Metadata"
+                        resource["downloadURL"] = SITE_URL + "/harvest/object/" + harvest_obj['id']
+                        resource["conformsTo"] = "http://www.isotc211.org/2005/gmi"
+                        resource["description"] = "The metadata original source"
+                        resource["mediaType"] = "text/xml"
+                        resource["format"] = "XML"
+                        arr += [OrderedDict(resource)]
+            except:
+                log.warn('Unable to retrieve organization extras')
 
         return arr
 

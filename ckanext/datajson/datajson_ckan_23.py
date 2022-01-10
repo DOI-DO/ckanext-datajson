@@ -113,7 +113,7 @@ class DatasetHarvesterBase(HarvesterBase):
 
     def extra_schema(self):
         return {
-            'validator_schema': [ignore_empty, unicode, validate_schema],
+            'validator_schema': [ignore_empty, str, validate_schema],
         }
 
     def gather_stage(self, harvest_job):

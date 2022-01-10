@@ -17,6 +17,7 @@ import ckan.plugins.toolkit as tk
 from ckan import logic, model
 from ckan.lib import helpers as h
 
+
 from . import datajsonvalidator, helpers
 
 # from helpers import *
@@ -71,6 +72,7 @@ class Package2Pod(object):
     def convert_package(package, json_export_map, site_url, redaction_enabled=False):
         import os
         import sys
+
         global SITE_URL
         SITE_URL = site_url
         try:
@@ -508,6 +510,9 @@ class Wrappers(object):
             if valid_resource:
                 arr += [OrderedDict(striped_resource)]
 
+
+        # Add full metadata link to distribution, as described here:
+        # https://github.com/GSA/ckanext-datajson/tree/main/ckanext/datajson/tests/datajson-samples#geospatial-full-metadata-link-example
         try:
             for e in package['extras']:
                 if e['key'] == 'harvest_object_id':
@@ -516,8 +521,10 @@ class Wrappers(object):
                     except:
                         log.warn('Unable to retrieve harvest objext id')
                     # Get full harvest object
+                    
                     context = {'model': model, 'user': p.toolkit.c.user or p.toolkit.c.author}
                     harvest_obj = logic.get_action('harvest_object_show')(context, {'id': harvest_object_id})
+
                     # Build full metadata link
                     resource = OrderedDict([('@type', "dcat:Distribution")])
                     resource["title"] = "Original Metadata"

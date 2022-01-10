@@ -89,7 +89,19 @@ class Package2Pod(object):
     def export_map_fields(package, json_export_map, redaction_enabled=False):
         import os
         import sys
-
+        try:
+            harvest_object_id = get_extra(package, 'harvest_object_id')
+            bureau_code = get_extra(package, 'bureau_code')
+            # If harvested and has bureau code (only DCAT-US has this metadata field)
+            if harvest_object_id and bureau_code:
+                harvest_obj = tk.get_action('harvest_object_show')({}, {'id': harvest_object_id})
+                parsed_obj = json.loads(harvest_obj['content'], object_pairs_hook=collections.OrderedDict)
+                return parsed_obj
+        except Exception as e:
+            # Something went wrong getting the harvest object, log and attempt package build
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            filename = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            log.error("%s : %s : %s : %s", exc_type, filename, exc_tb.tb_lineno, unicode(e))
         public_access_level = helpers.get_extra(package, 'public_access_level')
         if not public_access_level or public_access_level not in ['non-public', 'restricted public']:
             redaction_enabled = False
@@ -401,10 +413,15 @@ class Wrappers(object):
                 if re.search('^mailto:[\w\_\~\!\$\&\'\(\)\*\+\,\;\=\:.-]+@[\w.-]+\.[\w.-]+?$', email):
                     contact_point['hasEmail'] = email
                 else:
-                    contact_point['hasEmail'] = get_default_email()
+                    try:
+                        contact_point['hasEmail'] = get_default_email()
+                    except:
+                        contact_point['hasEmail'] = ''
             else:
-                contact_point['hasEmail'] = get_default_email()
-
+                try:
+                    contact_point['hasEmail'] = get_default_email()
+                except:
+                    contact_point['hasEmail'] = '' 
             return contact_point
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -488,27 +505,26 @@ class Wrappers(object):
             if valid_resource:
                 arr += [OrderedDict(striped_resource)]
 
-            try:
-                for e in package['extras']:
-                    if e['key'] == 'harvest_object_id':
-                        try:
-                            harvest_object_id = e['value']
-                        except:
-                            log.warn('Unable to retrieve harvest objext id')
-                        # Get full harvest object
-                        context = {'model': model, 'user': p.toolkit.c.user or p.toolkit.c.author}
-                        harvest_obj = logic.get_action('harvest_object_show')(context, {'id': harvest_object_id})
-
-                        # Build full metadata link
-                        resource = OrderedDict([('@type', "dcat:Distribution")])
-                        resource["title"] = "Original Metadata"
-                        resource["downloadURL"] = SITE_URL + "/harvest/object/" + harvest_obj['id']
-                        resource["conformsTo"] = "http://www.isotc211.org/2005/gmi"
-                        resource["description"] = "The metadata original source"
-                        resource["mediaType"] = "text/xml"
-                        resource["format"] = "XML"
-                        arr += [OrderedDict(resource)]
-            except:
+        try:
+            for e in package['extras']:
+                if e['key'] == 'harvest_object_id':
+                    try:
+                        harvest_object_id = e['value']
+                    except:
+                        log.warn('Unable to retrieve harvest objext id')
+                    # Get full harvest object
+                    context = {'model': model, 'user': p.toolkit.c.user or p.toolkit.c.author}
+                    harvest_obj = logic.get_action('harvest_object_show')(context, {'id': harvest_object_id})
+                    # Build full metadata link
+                    resource = OrderedDict([('@type', "dcat:Distribution")])
+                    resource["title"] = "Original Metadata"
+                    resource["downloadURL"] = SITE_URL + "/harvest/object/" + harvest_obj['id']
+                    resource["conformsTo"] = "http://www.isotc211.org/2005/gmi"
+                    resource["description"] = "The metadata original source"
+                    resource["mediaType"] = "text/xml"
+                    resource["format"] = "XML"
+                    arr += [OrderedDict(resource)]
+        except:
                 log.warn('Unable to retrieve organization extras')
 
         return arr
@@ -520,12 +536,18 @@ class Wrappers(object):
 
         if not 'organization' not in Wrappers.pkg or 'title' not in Wrappers.pkg.get('organization'):
             return None
+        if 'title' not in Wrappers.pkg.get('organization'):
+            return None
         org_title = Wrappers.pkg.get('organization').get('title')
         log.debug("org title: %s", org_title)
 
         code_list = Wrappers._get_bureau_code_list()
 
         if org_title not in code_list:
+            default_bureau_code = Wrappers.full_field_map.get('bureauCode').get('default')
+            if default_bureau_code is not None:
+                log.debug("No match found, using default: %s", default_bureau_code)
+                return [default_bureau_code]
             return None
 
         bureau = code_list.get(org_title)

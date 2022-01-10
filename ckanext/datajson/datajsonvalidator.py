@@ -1,7 +1,9 @@
 from future import standard_library
+
 standard_library.install_aliases()
-from builtins import str
 import re
+from builtins import str
+
 import rfc3987 as rfc3987_url
 
 # from the iso8601 package, plus ^ and $ on the edges
@@ -195,9 +197,17 @@ def do_validation(doc, errors_array, seen_identifiers):
 
             # programCode # required
             if not is_redacted(item.get('programCode')):
-                if check_required_field(item, "programCode", list, dataset_name, errs):
+                if item.get('programCode') is None:
+                    log.debug("ProgramCode missing from dataset %s, ignoring", dataset_name)
+                elif not isinstance(item.get('programCode'), list):
+                    add_error(errs, 5, "Invalid Field Value",
+                            "The '%s' field must be a %s but it has a different datatype (%s)." % (
+                                'programCode', nice_type_name(list), nice_type_name(type(item.get('programCode')))), dataset_name)
+                elif isinstance(item.get('programCode'), list) and len(item.get('programCode')) == 0:
+                    add_error(errs, 10, "Missing Required Fields", "The '%s' field is an empty array." % 'programCode', dataset_name)
+                else:
                     for pc in item["programCode"]:
-                        if not isinstance(pc, str):
+                        if not isinstance(pc, (str, unicode)):
                             add_error(errs, 5, "Invalid Required Field Value",
                                       "Each programCode in the programCode array must be a string", dataset_name)
                         elif not PROGRAM_CODE_REGEX.match(pc):

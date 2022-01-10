@@ -1,35 +1,3 @@
-Skip to content
-Search or jump to…
-Pull requests
-Issues
-Marketplace
-Explore
- 
-@gil-platt 
-GSA
-/
-ckanext-datajson
-Public
-forked from HHS/ckanext-datajson
-Code
-Issues
-11
-Pull requests
-5
-Actions
-Projects
-Wiki
-Security
-Insights
-ckanext-datajson/.github/workflows/test.yml
-@jbrown-xentity
-jbrown-xentity Update code coverage threshold
-Latest commit ab863ea on Jul 9, 2021
- History
- 3 contributors
-@jbrown-xentity@nickumia-reisys@adborden
-68 lines (65 sloc)  2.38 KB
-   
 name: Tests
 on: [pull_request]
 env:
@@ -98,15 +66,3 @@ jobs:
     - name: Report test coverage
       if: ${{ always() }}
       uses: coroo/pytest-coverage-commentator@v1.0.2
-© 2022 GitHub, Inc.
-Terms
-Privacy
-Security
-Status
-Docs
-Contact GitHub
-Pricing
-API
-Training
-Blog
-About

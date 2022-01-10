@@ -261,7 +261,7 @@ class DataJsonController(BaseController):
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             filename = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            logger.error("%s : %s : %s : %s", exc_type, filename, exc_tb.tb_lineno, unicode(e))
+            logger.error("%s : %s : %s : %s", exc_type, filename, exc_tb.tb_lineno, u'{}'.format(e))
 
         # Get the error log
         eh.flush()
@@ -378,20 +378,19 @@ class DataJsonController(BaseController):
             try:
                 body = json.load(urllib.urlopen(c.source_url))
             except IOError as e:
-                c.errors.append(("Error Loading File", ["The address could not be loaded: " + unicode(e)]))
+                c.errors.append(("Error Loading File", ["The address could not be loaded: " + u'{}'.format(e)]))
             except ValueError as e:
-                c.errors.append(("Invalid JSON", ["The file does not meet basic JSON syntax requirements: " + unicode(
-                    e) + ". Try using JSONLint.com."]))
+                c.errors.append(("Invalid JSON", ["The file does not meet basic JSON syntax requirements: " + u'{}'.format(e) + ". Try using JSONLint.com."]))
             except Exception as e:
                 c.errors.append((
                     "Internal Error",
-                    ["Something bad happened while trying to load and parse the file: " + unicode(e)]))
+                    ["Something bad happened while trying to load and parse the file: " + u'{}'.format(e)]))
 
             if body:
                 try:
                     do_validation(body, c.errors)
                 except Exception as e:
-                    c.errors.append(("Internal Error", ["Something bad happened: " + unicode(e)]))
+                    c.errors.append(("Internal Error", ["Something bad happened: " + u'{}'.format(e)]))
                 if len(c.errors) == 0:
                     c.errors.append(("No Errors", ["Great job!"]))
 

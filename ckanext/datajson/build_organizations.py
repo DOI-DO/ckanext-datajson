@@ -1,5 +1,8 @@
+import os
+import sys
+
 import simplejson as json
-import urllib2, os, sys
+import urllib2
 
 #Change these variables based on environment
 big_datajson_source = 'http://localhost/data.json'
@@ -44,13 +47,13 @@ def main(dest=None):
 
 if __name__=="__main__":
     if len(sys.argv)>2:
-        print "build_organizations.py <optional:/path/to/output/folder>"
+        print("build_organizations.py <optional:/path/to/output/folder>")
 
     if len(sys.argv)==2:
         if not os.path.exists(sys.argv[1]):
-            print "Path does not exist: {0}".format(sys.argv[1])
+            print("Path does not exist: {0}".format(sys.argv[1]))
         elif not os.path.isdir(sys.argv[1]):
-            print "Not a directory: {0}".format(sys.argv[1])
+            print("Not a directory: {0}".format(sys.argv[1]))
         else:
             main(sys.argv[1])
     else:
@@ -92,13 +95,13 @@ def enterprise_main(dest=None):
 
 if __name__=="__main__":
     if len(sys.argv)>2:
-        print "build_organizations.py <optional:/path/to/output/folder>"
+        print("build_organizations.py <optional:/path/to/output/folder>")
 
     if len(sys.argv)==2:
         if not os.path.exists(sys.argv[1]):
-            print "Path does not exist: {0}".format(sys.argv[1])
+            print("Path does not exist: {0}".format(sys.argv[1]))
         elif not os.path.isdir(sys.argv[1]):
-            print "Not a directory: {0}".format(sys.argv[1])
+            print("Not a directory: {0}".format(sys.argv[1]))
         else:
             main(sys.argv[1])
     else:

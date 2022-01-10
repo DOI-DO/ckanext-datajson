@@ -1,4 +1,9 @@
+import logging
+
 from future import standard_library
+
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
 
 standard_library.install_aliases()
 import re
@@ -207,7 +212,7 @@ def do_validation(doc, errors_array, seen_identifiers):
                     add_error(errs, 10, "Missing Required Fields", "The '%s' field is an empty array." % 'programCode', dataset_name)
                 else:
                     for pc in item["programCode"]:
-                        if not isinstance(pc, (str, unicode)):
+                        if not isinstance(pc, (str)):
                             add_error(errs, 5, "Invalid Required Field Value",
                                       "Each programCode in the programCode array must be a string", dataset_name)
                         elif not PROGRAM_CODE_REGEX.match(pc):

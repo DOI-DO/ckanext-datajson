@@ -1,17 +1,18 @@
 import json
 import zipfile
+
+import ckan.plugins as p
+from nose.plugins.skip import SkipTest
 from nose.tools import assert_in, assert_not_in
 from StringIO import StringIO
-from nose.plugins.skip import SkipTest
-import ckan.plugins as p
 
 try:
-    from ckan.tests.helpers import reset_db, FunctionalTestBase
-    from ckan.tests import factories
     from ckan.common import config
+    from ckan.tests import factories
+    from ckan.tests.helpers import FunctionalTestBase, reset_db
 except ImportError:  # CKAN 2.3
-    from ckan.new_tests.helpers import reset_db, FunctionalTestBase
     from ckan.new_tests import factories
+    from ckan.new_tests.helpers import FunctionalTestBase, reset_db
     from pylons import config
 
 
@@ -79,7 +80,7 @@ class TestExport(FunctionalTestBase):
         zf.close()
         zfile = zipfile.ZipFile(zip_path, 'r')
         for name in zfile.namelist():
-            print 'File Found {}'.format(name)
+            print('File Found {}'.format(name))
             zfile.extract(name)  # should create "draft_data.json"
 
         f = open('draft_data.json', 'r')

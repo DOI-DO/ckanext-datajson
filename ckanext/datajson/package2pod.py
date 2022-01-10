@@ -7,11 +7,13 @@ try:
 except ImportError:
     from sqlalchemy.util import OrderedDict
 
+import collections
+import json
 import re
 from logging import getLogger
 
 import ckan.plugins as p
-import ckan.plugins.toolkit as toolkit
+import ckan.plugins.toolkit as tk
 from ckan import logic, model
 from ckan.lib import helpers as h
 
@@ -90,8 +92,8 @@ class Package2Pod(object):
         import os
         import sys
         try:
-            harvest_object_id = get_extra(package, 'harvest_object_id')
-            bureau_code = get_extra(package, 'bureau_code')
+            harvest_object_id = helpers.get_extra(package, 'harvest_object_id')
+            bureau_code =  helpers.get_extra(package, 'bureau_code')
             # If harvested and has bureau code (only DCAT-US has this metadata field)
             if harvest_object_id and bureau_code:
                 harvest_obj = tk.get_action('harvest_object_show')({}, {'id': harvest_object_id})
@@ -101,7 +103,7 @@ class Package2Pod(object):
             # Something went wrong getting the harvest object, log and attempt package build
             exc_type, exc_obj, exc_tb = sys.exc_info()
             filename = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            log.error("%s : %s : %s : %s", exc_type, filename, exc_tb.tb_lineno, unicode(e))
+            log.error("%s : %s : %s : %s", exc_type, filename, exc_tb.tb_lineno, u'{}'.format(e))
         public_access_level = helpers.get_extra(package, 'public_access_level')
         if not public_access_level or public_access_level not in ['non-public', 'restricted public']:
             redaction_enabled = False
@@ -401,7 +403,7 @@ class Wrappers(object):
 
             def get_default_email():
                 default_email = ''
-                org_extras = toolkit.get_action('organization_show')(None, {
+                org_extras = tk.get_action('organization_show')(None, {
                     'id':package.get('organization').get('name')
                     })['extras']
                 for entry in org_extras:

@@ -3,23 +3,20 @@ try:
 except ImportError:
     from sqlalchemy.util import OrderedDict
 
-import string
-import os
-import sys
-import json
-import ckan.plugins.toolkit as tk
 import collections
-import ckan.plugins.toolkit as toolkit
-
+import json
+import os
+import string
+import sys
 from logging import getLogger
 
-from helpers import *
-from ckan import logic
-from ckan import model
 import ckan.plugins as p
-import ckan
-import urllib
+import ckan.plugins.toolkit as tk
+import ckan.plugins.toolkit as toolkit
+from ckan import logic, model
+
 import datajsonvalidator
+from helpers import *
 
 log = getLogger(__name__)
 
@@ -71,7 +68,8 @@ class Package2Pod:
 
     @staticmethod
     def convert_package(package, json_export_map, site_url, redaction_enabled=False):
-        import sys, os
+        import os
+        import sys
 
         global SITE_URL
         SITE_URL = site_url
@@ -189,7 +187,8 @@ class Package2Pod:
 
     @staticmethod
     def validate(pkg, dataset_dict):
-        import sys, os
+        import os
+        import sys
 
         global currentPackageOrg
 
@@ -349,7 +348,8 @@ class Wrappers:
 
     @staticmethod
     def build_contact_point(someValue):
-        import sys, os
+        import os
+        import sys
 
         try:
             contact_point_map = Wrappers.full_field_map.get('contactPoint').get('map')
@@ -514,23 +514,29 @@ class Wrappers:
 
         # Add full metadata link to distribution, as described here:
         # https://github.com/GSA/ckanext-datajson/tree/main/ckanext/datajson/tests/datajson-samples#geospatial-full-metadata-link-example
-        for e in package['extras']:
-            if e['key'] == 'harvest_object_id':
-                harvest_object_id = e['value']
+        try:
+            for e in package['extras']:
+                if e['key'] == 'harvest_object_id':
+                    try:
+                        harvest_object_id = e['value']
+                    except:
+                        log.warn('Could not find harvest object ID')
 
-                # Get full harvest object
-                context = {'model': model, 'user': p.toolkit.c.user or p.toolkit.c.author}
-                harvest_obj = logic.get_action('harvest_object_show')(context, {'id': harvest_object_id})
+                    # Get full harvest object
+                    context = {'model': model, 'user': p.toolkit.c.user or p.toolkit.c.author}
+                    harvest_obj = logic.get_action('harvest_object_show')(context, {'id': harvest_object_id})
 
-                # Build full metadata link
-                resource = OrderedDict([('@type', "dcat:Distribution")])
-                resource["title"] = "Original Metadata"
-                resource["downloadURL"] = SITE_URL + "/harvest/object/" + harvest_obj['id']
-                resource["conformsTo"] = "http://www.isotc211.org/2005/gmi"
-                resource["description"] = "The metadata original source"
-                resource["mediaType"] = "text/xml"
-                resource["format"] = "XML"
-                arr += [OrderedDict(resource)]
+                    # Build full metadata link
+                    resource = OrderedDict([('@type', "dcat:Distribution")])
+                    resource["title"] = "Original Metadata"
+                    resource["downloadURL"] = SITE_URL + "/harvest/object/" + harvest_obj['id']
+                    resource["conformsTo"] = "http://www.isotc211.org/2005/gmi"
+                    resource["description"] = "The metadata original source"
+                    resource["mediaType"] = "text/xml"
+                    resource["format"] = "XML"
+                    arr += [OrderedDict(resource)]
+        except:
+            log.warn('Unable to get package extras')
 
         return arr
 

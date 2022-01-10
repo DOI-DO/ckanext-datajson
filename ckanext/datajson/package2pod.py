@@ -400,6 +400,7 @@ class Wrappers(object):
                 contact_point['fn'] = package.get('organization').get('title')
 
             def get_default_email():
+                default_email = ''
                 org_extras = toolkit.get_action('organization_show')(None, {
                     'id':package.get('organization').get('name')
                     })['extras']

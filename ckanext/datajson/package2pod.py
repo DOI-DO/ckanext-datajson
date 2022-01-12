@@ -92,6 +92,21 @@ class Package2Pod(object):
         import os
         import sys
 
+        # If already harvested DCAT-US format, it should already be validated; use original
+        try:
+            harvest_object_id = get_extra(package, 'harvest_object_id')
+            bureau_code = get_extra(package, 'bureau_code')
+            # If harvested and has bureau code (only DCAT-US has this metadata field)
+            if harvest_object_id and bureau_code:
+                harvest_obj = tk.get_action('harvest_object_show')({}, {'id': harvest_object_id})
+                parsed_obj = json.loads(harvest_obj['content'], object_pairs_hook=collections.OrderedDict)
+                return parsed_obj
+        except Exception as e:
+            # Something went wrong getting the harvest object, log and attempt package build
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            filename = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            log.error("%s : %s : %s : %s", exc_type, filename, exc_tb.tb_lineno, unicode(e))
+
         public_access_level = helpers.get_extra(package, 'public_access_level')
         if not public_access_level or public_access_level not in ['non-public', 'restricted public']:
             redaction_enabled = False
@@ -371,6 +386,7 @@ class Wrappers(object):
             else:
                 email = package.get(contact_point_map.get('hasEmail').get('field'),
                                     package.get('maintainer_email'))
+            
 
             if email and not helpers.is_redacted(email) and '@' in email:
                 if not 'mailto:' in email:
@@ -436,6 +452,7 @@ class Wrappers(object):
 
         arr = []
         package = Wrappers.pkg
+        log.info(package.get('title'))
 
         distribution_map = Wrappers.full_field_map.get('distribution').get('map')
         if not distribution_map or 'resources' not in package:
@@ -490,6 +507,7 @@ class Wrappers(object):
             else:
                 log.warn("Missing downloadURL for resource in package ['%s']", package.get('id'))
 
+
             striped_resource = OrderedDict(
                 [(x, y) for x, y in resource.items() if y is not None and y != "" and y != []])
             
@@ -523,7 +541,9 @@ class Wrappers(object):
         if value:
             return value
 
-        if not 'organization' not in Wrappers.pkg or 'title' not in Wrappers.pkg.get('organization'):
+        if 'organization' not in Wrappers.pkg:
+            return None
+        if 'title' not in Wrappers.pkg.get('organization'):
             return None
         org_title = Wrappers.pkg.get('organization').get('title')
         log.debug("org title: %s", org_title)
@@ -531,6 +551,10 @@ class Wrappers(object):
         code_list = Wrappers._get_bureau_code_list()
 
         if org_title not in code_list:
+            default_bureau_code = Wrappers.full_field_map.get('bureauCode').get('default')
+            if default_bureau_code is not None:
+                log.debug("No match found, using default: %s", default_bureau_code)
+                return [default_bureau_code]
             return None
 
         bureau = code_list.get(org_title)
@@ -569,3 +593,15 @@ class Wrappers(object):
         msg = value + ' ... BECOMES ... ' + mime_type
         log.debug(msg)
         return mime_type
+
+    @staticmethod
+    def ckan_identifier(value):
+        if value:
+            return value
+        return Wrappers.pkg.get('id')
+        
+    @staticmethod
+    def modified_date(value):
+        if value:
+            return value
+        return get_extra(Wrappers.pkg, 'metadata-date')

@@ -1,24 +1,29 @@
+import datetime
+import hashlib
+import json
+import logging
+import os
+import uuid
+
+import urllib2
+import yaml
 from ckan import model
 from ckan import plugins as p
-from ckan.model import Session, Package, PackageExtra
-from ckan.logic import ValidationError, NotFound, get_action
-from ckan.logic.validators import name_validator
 from ckan.lib.munge import munge_title_to_name
-from ckan.lib.search.index import PackageSearchIndex
-from ckan.lib.navl.dictization_functions import Invalid, DataError
+from ckan.lib.navl.dictization_functions import DataError, Invalid
 from ckan.lib.navl.validators import ignore_empty
-
-from ckanext.harvest.model import HarvestJob, HarvestObject, HarvestGatherError, \
-                                    HarvestObjectError, HarvestObjectExtra
+from ckan.lib.search.index import PackageSearchIndex
+from ckan.logic import NotFound, ValidationError, get_action
+from ckan.logic.validators import name_validator
+from ckan.model import Package, PackageExtra, Session
 from ckanext.harvest.harvesters.base import HarvesterBase
-import uuid, datetime, hashlib, urllib2, json, yaml, json, os
-
-from jsonschema.validators import Draft4Validator
+from ckanext.harvest.model import (HarvestGatherError, HarvestJob,
+                                   HarvestObject, HarvestObjectError,
+                                   HarvestObjectExtra)
 from jsonschema import FormatChecker
-
+from jsonschema.validators import Draft4Validator
 from sqlalchemy.exc import IntegrityError
 
-import logging
 log = logging.getLogger("harvester")
 
 # watch out for these keys that their string values might go beyond Solr capacity
@@ -632,7 +637,7 @@ class DatasetHarvesterBase(HarvesterBase):
 
             try:
                 self._size_check(key, value)
-            except DataError, e:
+            except DataError as e:
                 self._save_object_error(e.error, harvest_object, 'Import')
                 return None
 

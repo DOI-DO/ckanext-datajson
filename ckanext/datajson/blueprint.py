@@ -7,6 +7,8 @@ import sys
 from builtins import str
 from re import L
 
+sys.path.append(os.getcwd())
+
 # from pylons import request, response
 import ckan.lib.dictization.model_dictize as model_dictize
 import ckan.model as model
@@ -18,10 +20,9 @@ from flask import Blueprint
 from flask.wrappers import Response
 from jsonschema.exceptions import best_match
 
-from plugin import DataJsonPlugin
-
 from .helpers import detect_publisher, get_export_map_json, get_validator
 from .package2pod import Package2Pod
+from .plugin import DataJsonPlugin
 
 # import plugin
 

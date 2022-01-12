@@ -4,8 +4,11 @@ from future import standard_library
 
 standard_library.install_aliases()
 
+import os
 import re
+import sys
 
+sys.path.append(os.getcwd())
 import ckan.plugins as p
 
 from . import blueprint

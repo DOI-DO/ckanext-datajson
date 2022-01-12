@@ -18,9 +18,9 @@ from flask import Blueprint
 from flask.wrappers import Response
 from jsonschema.exceptions import best_match
 
+from . import plugin
 from .helpers import detect_publisher, get_export_map_json, get_validator
 from .package2pod import Package2Pod
-from .plugin import DataJsonPlugin
 
 # import plugin
 
@@ -163,7 +163,7 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
                                 continue
                         
                         redaction_enabled = 'redacted' == export_type
-                        datajson_entry = Package2Pod.convert_package(pkg, json_export_map, DataJsonPlugin.site_url, redaction_enabled)
+                        datajson_entry = Package2Pod.convert_package(pkg, json_export_map, plugin.DataJsonPlugin.site_url, redaction_enabled)
                         
                         errors = None
                         if 'errors' in datajson_entry.keys():

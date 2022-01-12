@@ -94,8 +94,8 @@ class Package2Pod(object):
 
         # If already harvested DCAT-US format, it should already be validated; use original
         try:
-            harvest_object_id = get_extra(package, 'harvest_object_id')
-            bureau_code = get_extra(package, 'bureau_code')
+            harvest_object_id = helpers.get_extra(package, 'harvest_object_id')
+            bureau_code = helpers.get_extra(package, 'bureau_code')
             # If harvested and has bureau code (only DCAT-US has this metadata field)
             if harvest_object_id and bureau_code:
                 harvest_obj = tk.get_action('harvest_object_show')({}, {'id': harvest_object_id})
@@ -604,4 +604,4 @@ class Wrappers(object):
     def modified_date(value):
         if value:
             return value
-        return get_extra(Wrappers.pkg, 'metadata-date')
+        return helpers.get_extra(Wrappers.pkg, 'metadata-date')

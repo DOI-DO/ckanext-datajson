@@ -107,7 +107,7 @@ class Package2Pod(object):
             # Something went wrong getting the harvest object, log and attempt package build
             exc_type, exc_obj, exc_tb = sys.exc_info()
             filename = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            log.error("%s : %s : %s : %s", exc_type, filename, exc_tb.tb_lineno, unicode(e))
+            log.error("%s : %s : %s : %s", exc_type, filename, exc_tb.tb_lineno, e)
 
         public_access_level = helpers.get_extra(package, 'public_access_level')
         if not public_access_level or public_access_level not in ['non-public', 'restricted public']:

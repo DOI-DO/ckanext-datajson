@@ -43,7 +43,8 @@ class TestExport(inherit):
     def create_datasets(self):
 
         self.user = factories.Sysadmin()
-        self.user_name = self.user['name'].encode('ascii')
+        # self.user_name = self.user['name'].encode('ascii')
+        self.user_name = 'admin'
         self.organization = factories.Organization(name='myorg',
                                                    users=[{'name': self.user_name, 'capacity': 'Admin'}],
                                                    extras=[{'key': 'sub-agencies', 'value': 'sub-agency1,sub-agency2'}])
@@ -101,7 +102,10 @@ class TestExport(inherit):
             self.app = CKANZipTestApp(app)
         url = '/organization/{}/draft.json'.format(self.organization['id'])
         extra_environ = {'REMOTE_USER': self.user_name}
-        res = self.app.get(url, extra_environ=extra_environ)
+        if extra_environ.get('REMOTE_USER') is not None:
+            res = self.app.get(url, extra_environ=extra_environ)
+        else:
+            res = self.app.get(url)
 
         # zip file
         zip_path = '/tmp/test.zip'
@@ -183,7 +187,7 @@ class TestExport(inherit):
         else:
             data_json = json.loads(res.data)
 
-        if data_json is not None:        
+        if data_json is not None:
             datasets = [data_json['dataset'][i]['title'] for i in range(0, 5)]
 
             assert self.dataset1['title'] in datasets

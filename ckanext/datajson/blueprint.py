@@ -5,11 +5,9 @@ import logging
 import os
 import sys
 from builtins import str
-from re import L
 
 sys.path.append(os.getcwd())
 
-# from pylons import request, response
 import ckan.lib.dictization.model_dictize as model_dictize
 import ckan.model as model
 import ckan.plugins as p
@@ -22,12 +20,8 @@ from jsonschema.exceptions import best_match
 
 import plugin
 
-from .helpers import detect_publisher, get_export_map_json, get_validator
+from .helpers import get_export_map_json, get_validator
 from .package2pod import Package2Pod
-
-# from .plugin import DataJsonPlugin
-
-
 
 datapusher = Blueprint('datajson', __name__)
 
@@ -73,9 +67,9 @@ def generate(export_type='datajson', org_id=None):
     # If user is not editor or admin of the organization then don't allow unredacted download
     try:
         auth = p.toolkit.check_access('package_create',
-                                    {'model': model, 'user': c.user},
-                                    {'owner_org': org_id}
-                                    )
+                                      {'model': model, 'user': c.user},
+                                      {'owner_org': org_id}
+                                      )
     except p.toolkit.NotAuthorized:
         logger.error('NotAuthorized to generate JSON for {} to {} ({})'.format(export_type, org_id, c.user))
         auth = False
@@ -90,8 +84,6 @@ def generate(export_type='datajson', org_id=None):
     # Commented because it works without it
     del Response.headers["Cache-Control"]
     del Response.headers["Pragma"]
-    #resp = Response(make_json(export_type, org_id), mimetype='application/octet-stream')
-    #resp.headers['Content-Disposition'] = 'attachment; filename="%s.zip"' % _zip_name
 
     return make_json(export_type, org_id)
 
@@ -132,13 +124,12 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
     try:
         n = 500
         page = 1
-        dataset_list = []
         q = '+capacity:public' if not with_private else '*:*'
         fq = 'dataset_type:dataset'
         # Build the data.json file.
         if owner_org:
             fq += "AND organization:" + owner_org
-        
+
         while True:
             search_data_dict = {
                 'q': q,
@@ -165,29 +156,30 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
                         elif 'draft' == export_type:
                             if 'publishing_status' not in extras.keys() or extras.get('publishing_status') != 'Draft':
                                 continue
-                        
+
                         redaction_enabled = 'redacted' == export_type
-                        datajson_entry = Package2Pod.convert_package(pkg, json_export_map, plugin.DataJsonPlugin.site_url, redaction_enabled)
-                        
+                        datajson_entry = Package2Pod.convert_package(pkg, json_export_map,
+                                                                     plugin.DataJsonPlugin.site_url, redaction_enabled)
+
                         errors = None
                         if 'errors' in datajson_entry.keys():
                             errors_json.append(datajson_entry)
                             errors = datajson_entry.get('errors')
                             datajson_entry = None
-                        
+
                         if datajson_entry and \
-                                    (not json_export_map.get('validation_enabled') or is_valid(datajson_entry)):
-                                output.append(datajson_entry)
+                                (not json_export_map.get('validation_enabled') or is_valid(datajson_entry)):
+                            output.append(datajson_entry)
                         else:
-                            publisher = detect_publisher(extras)
                             if errors:
                                 logger.warn("Dataset id=[%s], title=[%s], organization=[%s] omitted, reason below:\n\t%s\n",
-                                            pkg.get('id', None), pkg.get('title', None), pkg.get('organization').get('title'), errors)
+                                            pkg.get('id', None), pkg.get('title', None),
+                                            pkg.get('organization').get('title'), errors)
                             else:
                                 logger.warn("Dataset id=[%s], title=[%s], organization=[%s] omitted, reason above.\n",
                                             pkg.get('id', None), pkg.get('title', None), pkg.get('organization').get('title'))
                     if 'datajson' == export_type:
-                        page +=1
+                        page += 1
                     else:
                         break
             else:
@@ -200,7 +192,6 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
 
     # Get the error log
     eh.flush()
-    error = stream.getvalue()
     eh.close()
     logger.removeHandler(eh)
     stream.close()

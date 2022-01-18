@@ -1,12 +1,13 @@
 from future import standard_library
+
 standard_library.install_aliases()
-from builtins import str
 import csv
 import os
 import re
-import rfc3987 as rfc3987_url
-
+from builtins import str
 from logging import getLogger
+
+import rfc3987 as rfc3987_url
 
 log = getLogger(__name__)
 
@@ -201,19 +202,22 @@ def do_validation(doc, errors_array, seen_identifiers):
                     log.debug("ProgramCode missing from dataset %s, ignoring", dataset_name)
                 elif not isinstance(item.get('programCode'), list):
                     add_error(errs, 5, "Invalid Field Value",
-                            "The '%s' field must be a %s but it has a different datatype (%s)." % (
-                                'programCode', nice_type_name(list), nice_type_name(type(item.get('programCode')))), dataset_name)
+                              "The '%s' field must be a %s but it has a different datatype (%s)."
+                              % ('programCode', nice_type_name(list), nice_type_name(type(item.get('programCode')))),
+                              dataset_name)
                 elif isinstance(item.get('programCode'), list) and len(item.get('programCode')) == 0:
-                    add_error(errs, 10, "Missing Required Fields", "The '%s' field is an empty array." % 'programCode', dataset_name)
+                    add_error(errs, 10, "Missing Required Fields",
+                              "The '%s' field is an empty array." % 'programCode', dataset_name)
                 else:
                     for pc in item["programCode"]:
                         if not isinstance(pc, str):
                             add_error(errs, 5, "Invalid Required Field Value",
-                                      "Each programCode in the programCode array must be a string", dataset_name)
+                                      "Each programCode in the programCode array must be a string",
+                                      dataset_name)
                         elif not PROGRAM_CODE_REGEX.match(pc):
                             add_error(errs, 50, "Invalid Field Value (Optional Fields)",
-                                      "One of programCodes is not in valid format (ex. 018:001): \"%s\"" % pc,
-                                      dataset_name)
+                                                "One of programCodes is not in valid format (ex. 018:001): \"%s\"" % pc,
+                                                dataset_name)
 
             # publisher # required
             if check_required_field(item, "publisher", dict, dataset_name, errs):

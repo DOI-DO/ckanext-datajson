@@ -384,19 +384,18 @@ class Wrappers(object):
 
             if contact_point_map.get('hasEmail').get('extra'):
                 email = helpers.get_extra(package, contact_point_map.get('hasEmail').get('field'),
-                                        package.get('maintainer_email'))
+                                          package.get('maintainer_email'))
             else:
                 email = package.get(contact_point_map.get('hasEmail').get('field'),
                                     package.get('maintainer_email'))
-            
 
             if email and not helpers.is_redacted(email) and '@' in email:
-                if not 'mailto:' in email:
+                if 'mailto:' not in email:
                     email = 'mailto:' + email
 
             if Wrappers.redaction_enabled:
                 redaction_reason = helpers.get_extra(package, 'redacted_' + contact_point_map.get('hasEmail').get('field'),
-                                                    False)
+                                                     False)
                 if redaction_reason:
                     email = Package2Pod.mask_redacted(email, redaction_reason)
             else:
@@ -410,27 +409,27 @@ class Wrappers(object):
 
             def get_default_email():
                 org_extras = toolkit.get_action('organization_show')(None, {
-                    'id':package.get('organization').get('name')
-                    })['extras']
+                    'id': package.get('organization').get('name')
+                })['extras']
                 for entry in org_extras:
                     for key, value in entry.items():
                         if entry[key] == 'default_org_email':
                             default_email = entry['value']
                 return default_email if 'mailto:' in default_email else 'mailto:' + default_email
-            
+
             if email:
                 if re.search('^mailto:[\w\_\~\!\$\&\'\(\)\*\+\,\;\=\:.-]+@[\w.-]+\.[\w.-]+?$', email):
                     contact_point['hasEmail'] = email
                 else:
                     try:
                         contact_point['hasEmail'] = get_default_email()
-                    except:
+                    except Exception:
                         contact_point['hasEmail'] = ''
             else:
                 try:
                     contact_point['hasEmail'] = get_default_email()
-                except:
-                    contact_point['hasEmail'] = '' 
+                except Exception:
+                    contact_point['hasEmail'] = ''
             return contact_point
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -503,24 +502,23 @@ class Wrappers(object):
                     else:
                         if not datajsonvalidator.check_url_field(True, resource, 'accessURL', None, {}):
                             valid_resource = False
-                except:
+                except Exception:
                     valid_resource = False
-                    
+
             else:
                 log.warn("Missing downloadURL for resource in package ['%s']", package.get('id'))
 
-
             striped_resource = OrderedDict(
                 [(x, y) for x, y in resource.items() if y is not None and y != "" and y != []])
-            
+
             if valid_resource:
                 arr += [OrderedDict(striped_resource)]
-        
+
         for e in package['extras']:
             if e['key'] == 'harvest_object_id':
                 try:
                     harvest_object_id = e['value']
-                except:
+                except Exception:
                     log.warn('Could not find harvest object ID')
                 # Get full harvest object
                 context = {'model': model, 'user': p.toolkit.c.user or p.toolkit.c.author}
@@ -534,7 +532,6 @@ class Wrappers(object):
                 resource["mediaType"] = "text/xml"
                 resource["format"] = "XML"
                 arr += [OrderedDict(resource)]
-
 
         return arr
 
@@ -601,7 +598,7 @@ class Wrappers(object):
         if value:
             return value
         return Wrappers.pkg.get('id')
-        
+
     @staticmethod
     def modified_date(value):
         if value:

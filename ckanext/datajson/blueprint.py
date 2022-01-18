@@ -82,8 +82,8 @@ def generate(export_type='datajson', org_id=None):
 
     # allow caching of response (e.g. by Apache)
     # Commented because it works without it
-    del Response.headers["Cache-Control"]
-    del Response.headers["Pragma"]
+    # del Response.headers["Cache-Control"]
+    # del Response.headers["Pragma"]
 
     return make_json(export_type, org_id)
 

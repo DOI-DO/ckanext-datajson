@@ -4,6 +4,7 @@ from future import standard_library
 
 standard_library.install_aliases()
 import json
+import os
 import zipfile
 
 import ckanext.harvest.model as harvest_model
@@ -115,11 +116,12 @@ class TestExport(inherit):
         else:
             zf.write(res.data)
         zf.close()
-        zfile = zipfile.ZipFile(zip_path, 'r')
-        for name in zfile.namelist():
-            print('File Found {}'.format(name))
-            zfile.extract(name)  # should create "draft_data.json"
-        zfile.close()
+        if os.path.isdir(zip_path):
+            zfile = zipfile.ZipFile(zip_path, 'r')
+            for name in zfile.namelist():
+                print('File Found {}'.format(name))
+                zfile.extract(name)  # should create "draft_data.json"
+            zfile.close()
         f = open('draft_data.json', 'r')
         raw = f.read()
         f.close()

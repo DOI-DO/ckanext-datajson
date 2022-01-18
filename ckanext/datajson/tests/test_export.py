@@ -119,7 +119,7 @@ class TestExport(inherit):
         for name in zfile.namelist():
             print('File Found {}'.format(name))
             zfile.extract(name)  # should create "draft_data.json"
-
+        zfile.close()
         f = open('draft_data.json', 'r')
         raw = f.read()
         f.close()

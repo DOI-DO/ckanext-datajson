@@ -140,10 +140,9 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
             }
             query = p.toolkit.get_action('package_search')({}, search_data_dict)
             packages = query['results']
-            json_export_map = get_export_map_json('export.map.json') if len(query['results']) else {}
 
             if len(query['results']):
-                # json_export_map = get_export_map_json('export.map.json')
+                json_export_map = get_export_map_json('export.map.json')
 
                 if json_export_map:
                     for pkg in packages:

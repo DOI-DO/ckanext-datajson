@@ -4,9 +4,12 @@ from future import standard_library
 
 standard_library.install_aliases()
 import json
-import os
 import zipfile
-from pathlib import Path
+
+try:
+    from pathlib import Path
+except Exception:
+    from pathlib2 import Path    
 
 import ckanext.harvest.model as harvest_model
 import six

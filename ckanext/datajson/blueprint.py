@@ -123,6 +123,7 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
 
     try:
         n = 500
+        json_export_map = {}
         page = 1
         q = '+capacity:public' if not with_private else '*:*'
         fq = 'dataset_type:dataset'

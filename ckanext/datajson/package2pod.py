@@ -33,7 +33,7 @@ class Package2Pod(object):
 
     @staticmethod
     def wrap_json_catalog(dataset_dict, json_export_map):
-        if type(json_export_map) is not dict:
+        if type(json_export_map.get('catalog_headers')) is not dict:
             return
         catalog_headers = [(x, y) for x, y in json_export_map.get('catalog_headers').items()]
         catalog = OrderedDict(

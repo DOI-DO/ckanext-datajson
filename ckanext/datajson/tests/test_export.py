@@ -6,6 +6,7 @@ standard_library.install_aliases()
 import json
 import os
 import zipfile
+from pathlib import Path
 
 import ckanext.harvest.model as harvest_model
 import six
@@ -116,15 +117,17 @@ class TestExport(inherit):
         else:
             zf.write(res.data)
         zf.close()
-        if os.path.isdir(zip_path):
+        if Path(zip_path).is_file():
             zfile = zipfile.ZipFile(zip_path, 'r')
             for name in zfile.namelist():
                 print('File Found {}'.format(name))
                 zfile.extract(name)  # should create "draft_data.json"
             zfile.close()
-        f = open('draft_data.json', 'r')
-        raw = f.read()
-        f.close()
+
+        if Path('draft_data.json').is_file():
+            f = open('draft_data.json', 'r')
+            raw = f.read()
+            f.close()
 
         """ data sample
         {

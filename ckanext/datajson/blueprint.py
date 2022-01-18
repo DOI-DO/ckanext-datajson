@@ -122,7 +122,7 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
     # first_line = True
 
     try:
-        json_export_map = ''
+        json_export_map = {}
         n = 500
         page = 1
         q = '+capacity:public' if not with_private else '*:*'

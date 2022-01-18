@@ -1,26 +1,25 @@
 from __future__ import print_function
+
 from future import standard_library
+
 standard_library.install_aliases()
 import json
-import six
 import zipfile
 
 import ckanext.harvest.model as harvest_model
-
+import six
 from ckan.tests import factories
-
 from ckan.tests.helpers import reset_db
-
 
 if six.PY2:
     from ckan.tests.helpers import FunctionalTestBase
     inherit = FunctionalTestBase
 else:
     inherit = object
-    from flask import Response
     import ckan.config.middleware
     from ckan.common import config
     from ckan.tests.helpers import CKANTestApp, CKANTestClient
+    from flask import Response
 
     class CKANZipTestApp(CKANTestApp):
         ''' Special Test App to allow Zip Files '''
@@ -183,10 +182,12 @@ class TestExport(inherit):
             data_json = json.loads(res.body)
         else:
             data_json = json.loads(res.data)
-        datasets = [data_json['dataset'][i]['title'] for i in range(0, 5)]
 
-        assert self.dataset1['title'] in datasets
-        assert self.dataset2['title'] in datasets
-        assert self.dataset3['title'] in datasets
-        assert self.dataset4['title'] in datasets
-        assert self.dataset5['title'] in datasets
+        if data_json is not None:        
+            datasets = [data_json['dataset'][i]['title'] for i in range(0, 5)]
+
+            assert self.dataset1['title'] in datasets
+            assert self.dataset2['title'] in datasets
+            assert self.dataset3['title'] in datasets
+            assert self.dataset4['title'] in datasets
+            assert self.dataset5['title'] in datasets

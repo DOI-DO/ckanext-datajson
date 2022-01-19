@@ -120,13 +120,15 @@ class TestExport(inherit):
         else:
             zf.write(res.data)
         zf.close()
-        if Path(zip_path).is_file():
+        
+        try:
             zfile = zipfile.ZipFile(zip_path, 'r')
             for name in zfile.namelist():
                 print('File Found {}'.format(name))
                 zfile.extract(name)  # should create "draft_data.json"
             zfile.close()
-
+        except Exception:
+            print('Unable to open zip file')
         if Path('draft_data.json').is_file():
             f = open('draft_data.json', 'r')
             raw = f.read()

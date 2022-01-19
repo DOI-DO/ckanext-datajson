@@ -48,7 +48,7 @@ class TestExport(inherit):
     def create_datasets(self):
 
         self.user = factories.Sysadmin()
-        self.user_name = self.user['id'].encode('ascii')
+        self.user_name = self.user['name'].encode('ascii')
         # self.user_name = 'admin'
         self.organization = factories.Organization(name='myorg',
                                                    users=[{'name': self.user_name, 'capacity': 'Admin'}],

@@ -48,8 +48,8 @@ class TestExport(inherit):
     def create_datasets(self):
 
         self.user = factories.Sysadmin()
-        # self.user_name = self.user['name'].encode('ascii')
-        self.user_name = 'admin'
+        self.user_name = self.user['name'].encode('ascii')
+        # self.user_name = 'admin'
         self.organization = factories.Organization(name='myorg',
                                                    users=[{'name': self.user_name, 'capacity': 'Admin'}],
                                                    extras=[{'key': 'sub-agencies', 'value': 'sub-agency1,sub-agency2'}])
@@ -133,6 +133,15 @@ class TestExport(inherit):
             f = open('draft_data.json', 'r')
             raw = f.read()
             f.close()
+            data_res = json.loads(raw)
+            datasets = data_res['dataset']
+            titles = [d['title'] for d in datasets]
+
+            assert self.dataset2['title'] not in titles
+            assert self.dataset4['title'] not in titles
+
+            assert self.dataset1['title'] in titles
+            assert self.dataset3['title'] in titles
 
         """ data sample
         {
@@ -165,15 +174,6 @@ class TestExport(inherit):
                 ]
         } """  # NOQA
 
-        data_res = json.loads(raw)
-        datasets = data_res['dataset']
-        titles = [d['title'] for d in datasets]
-
-        assert self.dataset2['title'] not in titles
-        assert self.dataset4['title'] not in titles
-
-        assert self.dataset1['title'] in titles
-        assert self.dataset3['title'] in titles
 
     def test_subagency_data_json(self):
         ''' Test for https://github.com/GSA/datagov-deploy/issues/3365 '''

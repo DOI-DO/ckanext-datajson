@@ -107,7 +107,7 @@ class TestExport(inherit):
             config["testing"] = True
             app = ckan.config.middleware.make_app(config)
             self.app = CKANZipTestApp(app)
-        url = '/organization/{}/data.json'.format(self.organization['id'])
+        url = '/data.json'
         extra_environ = {'REMOTE_USER': self.user_name}
         if extra_environ.get('REMOTE_USER') is not None:
             res = self.app.get(url, extra_environ=extra_environ)

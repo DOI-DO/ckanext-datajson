@@ -49,6 +49,7 @@ class TestExport(inherit):
 
         self.user = factories.Sysadmin()
         self.user_name = self.user['name'].encode('ascii')
+        print('user name: {}'.format(self.user_name))
         # self.user_name = 'admin'
         self.organization = factories.Organization(name='myorg',
                                                    users=[{'name': self.user_name, 'capacity': 'Admin'}],
@@ -57,7 +58,8 @@ class TestExport(inherit):
                                                  users=[{'name': self.user_name, 'capacity': 'Admin'}])
         self.subagency2 = factories.Organization(name='sub-agency2',
                                                  users=[{'name': self.user_name, 'capacity': 'Admin'}])
-
+        print('organization: {}'.format(self.organization))
+        
         dataset = {
             'public_access_level': 'public',
             'unique_id': '',

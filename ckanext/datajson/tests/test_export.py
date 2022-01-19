@@ -121,27 +121,22 @@ class TestExport(inherit):
             zf.write(res.data)
         zf.close()
         
-        try:
-            zfile = zipfile.ZipFile(zip_path, 'r')
-            for name in zfile.namelist():
-                print('File Found {}'.format(name))
-                zfile.extract(name)  # should create "draft_data.json"
-            zfile.close()
-        except Exception:
-            print('Unable to open zip file')
-        if Path('draft_data.json').is_file():
-            f = open('draft_data.json', 'r')
-            raw = f.read()
-            f.close()
-            data_res = json.loads(raw)
-            datasets = data_res['dataset']
-            titles = [d['title'] for d in datasets]
-
-            assert self.dataset2['title'] not in titles
-            assert self.dataset4['title'] not in titles
-
-            assert self.dataset1['title'] in titles
-            assert self.dataset3['title'] in titles
+        zfile = zipfile.ZipFile(zip_path, 'r')
+        for name in zfile.namelist():
+            print('File Found {}'.format(name))
+            zfile.extract(name)  # should create "draft_data.json"
+        zfile.close()
+        
+        f = open('draft_data.json', 'r')
+        raw = f.read()
+        f.close()
+        data_res = json.loads(raw)
+        datasets = data_res['dataset']
+        titles = [d['title'] for d in datasets]
+        assert self.dataset2['title'] not in titles
+        assert self.dataset4['title'] not in titles
+        assert self.dataset1['title'] in titles
+        assert self.dataset3['title'] in titles
 
         """ data sample
         {

@@ -112,7 +112,7 @@ class TestExport(inherit):
         extra_environ = {'REMOTE_USER': self.user_name}
         if extra_environ.get('REMOTE_USER') is not None:
             res = self.app.get(url, extra_environ=extra_environ)
-            print(res.body)
+            print(res)
         else:
             res = self.app.get(url)
 

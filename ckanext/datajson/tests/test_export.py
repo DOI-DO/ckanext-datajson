@@ -12,10 +12,13 @@ from ckan.tests import factories
 from ckan.tests.helpers import reset_db
 
 if six.PY2:
+    import urllib2
     from ckan.tests.helpers import FunctionalTestBase
     inherit = FunctionalTestBase
 else:
     inherit = object
+    import urllib
+
     import ckan.config.middleware
     from ckan.common import config
     from ckan.tests.helpers import CKANTestApp, CKANTestClient
@@ -176,12 +179,20 @@ class TestExport(inherit):
             self.app = CKANZipTestApp(app)
         url = 'http://localhost:5000/organization/{}/data.json'.format(self.organization['id'])
         extra_environ = {'REMOTE_USER': self.user_name}
-        res = self.app.get(url, extra_environ=extra_environ)
-        print('response agency: {}'.format(res))
-        if six.PY2:
-            data_json = json.loads(res.body)
+        # res = self.app.get(url, extra_environ=extra_environ)
+        # print('response agency: {}'.format(res))
+        # if six.PY2:
+        #     data_json = json.loads(res.body)
+        # else:
+        #     data_json = json.loads(res.data)
+        if six.PY2: 
+            req = urllib2.Request(url)
+            res = urllib2.urlopen(req)
+            data_json = json.loads(res.read())
         else:
-            data_json = json.loads(res.data)
+            req = urllib.request.Request(url)
+            res = urllib.request.urlopen(req)
+            data_json = json.loads(res.read()) 
         print(data_json)
         datasets = [data_json['dataset'][i]['title'] for i in range(0, 5)]
 

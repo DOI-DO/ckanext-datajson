@@ -34,7 +34,7 @@ class Package2Pod(object):
     @staticmethod
     def wrap_json_catalog(dataset_dict, json_export_map):
         
-        catalog_headers = [(x, y) for x, y in json_export_map.get('catalog_headers').items() 
+        catalog_headers = [(x, y) for x, y in json_export_map.get('catalog_headers').items()
                            if json_export_map.get('catalog_headers')]
         catalog = OrderedDict(
             catalog_headers + [('dataset', dataset_dict)]

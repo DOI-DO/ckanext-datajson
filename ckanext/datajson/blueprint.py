@@ -37,7 +37,6 @@ def generate_json():
 
 
 def generate_org_json(org_id):
-    logger.info('\n\n\n {} \n\n\n'.format(org_id))
     return generate_output(org_id=org_id)
 
 
@@ -131,7 +130,9 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
         fq = 'dataset_type:dataset'
         # Build the data.json file.
         if owner_org:
-            fq += "AND organization:" + owner_org
+            fq += " AND organization:" + owner_org
+
+        logger.info('\n\n\n {} \n\n\n'.format(fq))
 
         while True:
             search_data_dict = {
@@ -141,6 +142,7 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
                 'rows': n,
                 'start': n * (page - 1),
             }
+
             query = p.toolkit.get_action('package_search')({}, search_data_dict)
             packages = query['results']
 

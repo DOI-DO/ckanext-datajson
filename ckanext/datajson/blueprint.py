@@ -37,6 +37,7 @@ def generate_json():
 
 
 def generate_org_json(org_id):
+    logger.info('\n\n\n {} \n\n\n'.format(org_id))
     return generate_output(org_id=org_id)
 
 
@@ -84,7 +85,8 @@ def generate(export_type='datajson', org_id=None):
     # Commented because it works without it
     # del Response.headers["Cache-Control"]
     # del Response.headers["Pragma"]
-    data = make_json(export_type=export_type, owner_org=org_id)
+
+    data = make_json(export_type, org_id)
     return p.toolkit.literal(json.dumps(data))
 
 
@@ -123,7 +125,7 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
 
     try:
         n = 500
-        json_export_map = {}
+        # json_export_map = {}
         page = 1
         q = '+capacity:public' if not with_private else '*:*'
         fq = 'dataset_type:dataset'
@@ -185,7 +187,8 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
                         break
             else:
                 break
-        data = Package2Pod.wrap_json_catalog(output, json_export_map)
+        if json_export_map:
+            data = Package2Pod.wrap_json_catalog(output, json_export_map)
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         filename = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
@@ -346,7 +349,7 @@ def validator():
 
 
 def test_for_gil():
-    logger.info('\n\n\n\n\n\n\n GIL TESTED HERE \n\n\n\n\n\n\n')
+    logger.info('\n\n\n\n\n\n\n {} \n\n\n\n\n\n\n'.format(make_json(export_type='datajson', owner_org=None)))
 
 
 datapusher.add_url_rule('/internal/data.json',

@@ -59,8 +59,7 @@ class TestExport(inherit):
                                                  users=[{'name': self.user_name, 'capacity': 'Admin'}])
         self.subagency2 = factories.Organization(name='sub-agency2',
                                                  users=[{'name': self.user_name, 'capacity': 'Admin'}])
-        print('organization: {}'.format(self.organization))
-        
+
         dataset = {
             'public_access_level': 'public',
             'unique_id': '',
@@ -112,13 +111,11 @@ class TestExport(inherit):
         extra_environ = {'REMOTE_USER': self.user_name}
         if extra_environ.get('REMOTE_USER') is not None:
             res = self.app.get(url, extra_environ=extra_environ)
-            print(res)
         else:
             res = self.app.get(url)
 
         # zip file
         zip_path = '/tmp/test.zip'
-        print(Path(zip_path).is_file())
         zf = open(zip_path, 'wb')
         if six.PY2:
             zf.write(res.body)
@@ -191,12 +188,13 @@ class TestExport(inherit):
         url = '/organization/{}/data.json'.format(self.organization['id'])
         extra_environ = {'REMOTE_USER': self.user_name}
         res = self.app.get(url, extra_environ=extra_environ)
-
+        print('Response: {}\n\n'.format(res))
         if six.PY2:
             data_json = json.loads(res.body)
         else:
             data_json = json.loads(res.data)
 
+        print('datajson: {}\n\n'.format(data_json))
         if data_json is not None:
             datasets = [data_json['dataset'][i]['title'] for i in range(0, 5)]
 

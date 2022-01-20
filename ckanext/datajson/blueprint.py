@@ -84,9 +84,8 @@ def generate(export_type='datajson', org_id=None):
     # Commented because it works without it
     # del Response.headers["Cache-Control"]
     # del Response.headers["Pragma"]
-    # data = make_json(export_type=export_type, owner_org=org_id)
-    # return p.toolkit.literal(json.dumps(data))
-    return make_json(export_type=export_type, owner_org=org_id)
+    data = make_json(export_type=export_type, owner_org=org_id)
+    return p.toolkit.literal(json.dumps(data))
 
 
 def generate_output(org_id=None):

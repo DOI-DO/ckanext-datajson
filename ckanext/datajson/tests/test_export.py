@@ -4,13 +4,7 @@ from future import standard_library
 
 standard_library.install_aliases()
 import json
-import urllib
 import zipfile
-
-try:
-    from pathlib import Path
-except Exception:
-    from pathlib2 import Path    
 
 import ckanext.harvest.model as harvest_model
 import six
@@ -50,8 +44,6 @@ class TestExport(inherit):
 
         self.user = factories.Sysadmin()
         self.user_name = self.user['name'].encode('ascii')
-        print('user name: {}'.format(self.user_name))
-        # self.user_name = 'admin'
         self.organization = factories.Organization(name='myorg',
                                                    users=[{'name': self.user_name, 'capacity': 'Admin'}],
                                                    extras=[{'key': 'sub-agencies', 'value': 'sub-agency1,sub-agency2'}])
@@ -107,12 +99,9 @@ class TestExport(inherit):
             config["testing"] = True
             app = ckan.config.middleware.make_app(config)
             self.app = CKANZipTestApp(app)
-        url = '/internal/data.json'
+        url = '/organization/{}/draft.json'.format(self.organization['id'])
         extra_environ = {'REMOTE_USER': self.user_name}
-        if extra_environ.get('REMOTE_USER') is not None:
-            res = self.app.get(url, extra_environ=extra_environ)
-        else:
-            res = self.app.get(url)
+        res = self.app.get(url, extra_environ=extra_environ)
 
         # zip file
         zip_path = '/tmp/test.zip'
@@ -122,23 +111,14 @@ class TestExport(inherit):
         else:
             zf.write(res.data)
         zf.close()
-        
         zfile = zipfile.ZipFile(zip_path, 'r')
         for name in zfile.namelist():
             print('File Found {}'.format(name))
             zfile.extract(name)  # should create "draft_data.json"
-        zfile.close()
-        
+
         f = open('draft_data.json', 'r')
         raw = f.read()
         f.close()
-        data_res = json.loads(raw)
-        datasets = data_res['dataset']
-        titles = [d['title'] for d in datasets]
-        assert self.dataset2['title'] not in titles
-        assert self.dataset4['title'] not in titles
-        assert self.dataset1['title'] in titles
-        assert self.dataset3['title'] in titles
 
         """ data sample
         {
@@ -171,6 +151,15 @@ class TestExport(inherit):
                 ]
         } """  # NOQA
 
+        data_res = json.loads(raw)
+        datasets = data_res['dataset']
+        titles = [d['title'] for d in datasets]
+
+        assert self.dataset2['title'] not in titles
+        assert self.dataset4['title'] not in titles
+
+        assert self.dataset1['title'] in titles
+        assert self.dataset3['title'] in titles
 
     def test_subagency_data_json(self):
         ''' Test for https://github.com/GSA/datagov-deploy/issues/3365 '''
@@ -188,18 +177,15 @@ class TestExport(inherit):
         url = '/organization/{}/data.json'.format(self.organization['id'])
         extra_environ = {'REMOTE_USER': self.user_name}
         res = self.app.get(url, extra_environ=extra_environ)
-        print('Response: {}\n\n'.format(res))
+
         if six.PY2:
             data_json = json.loads(res.body)
         else:
             data_json = json.loads(res.data)
+        datasets = [data_json['dataset'][i]['title'] for i in range(0, 5)]
 
-        print('datajson: {}\n\n'.format(data_json))
-        if data_json is not None:
-            datasets = [data_json['dataset'][i]['title'] for i in range(0, 5)]
-
-            assert self.dataset1['title'] in datasets
-            assert self.dataset2['title'] in datasets
-            assert self.dataset3['title'] in datasets
-            assert self.dataset4['title'] in datasets
-            assert self.dataset5['title'] in datasets
+        assert self.dataset1['title'] in datasets
+        assert self.dataset2['title'] in datasets
+        assert self.dataset3['title'] in datasets
+        assert self.dataset4['title'] in datasets
+        assert self.dataset5['title'] in datasets

@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+from cmath import log
+
 from future import standard_library
 
 standard_library.install_aliases()
@@ -182,6 +184,7 @@ class TestExport(inherit):
             data_json = json.loads(res.body)
         else:
             data_json = json.loads(res.data)
+        print(data_json)
         datasets = [data_json['dataset'][i]['title'] for i in range(0, 5)]
 
         assert self.dataset1['title'] in datasets

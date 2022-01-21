@@ -71,6 +71,7 @@ class TestExport(inherit):
         d1 = dataset.copy()
         d1.update({'title': 'test 01 dataset', 'unique_id': 't1', 'extras': extra_for_draft})
         self.dataset1 = factories.Dataset(**d1)
+        print(self.dataset1)
         d2 = dataset.copy()
         d2.update({'title': 'test 02 dataset', 'unique_id': 't2'})
         self.dataset2 = factories.Dataset(**d2)
@@ -102,7 +103,7 @@ class TestExport(inherit):
             config["testing"] = True
             app = ckan.config.middleware.make_app(config)
             self.app = CKANZipTestApp(app)
-        url = 'http://ckan:5000/organization/{}/draft.json'.format(self.organization['id'])
+        url = '/organization/{}/draft.json'.format(self.organization['id'])
         extra_environ = {'REMOTE_USER': self.user_name}
         res = self.app.get(url, extra_environ=extra_environ)
         print('draft res: {}'.format(res))
@@ -177,22 +178,22 @@ class TestExport(inherit):
             config["testing"] = True
             app = ckan.config.middleware.make_app(config)
             self.app = CKANZipTestApp(app)
-        url = 'http://ckan:5000/organization/{}/data.json'.format(self.organization['id'])
+        url = '/organization/{}/data.json'.format(self.organization['id'])
         extra_environ = {'REMOTE_USER': self.user_name}
-        # res = self.app.get(url, extra_environ=extra_environ)
-        # print('response agency: {}'.format(res))
-        # if six.PY2:
-        #     data_json = json.loads(res.body)
-        # else:
-        #     data_json = json.loads(res.data)
-        if six.PY2: 
-            req = urllib2.Request(url)
-            res = urllib2.urlopen(req)
-            data_json = json.loads(res.read())
+        res = self.app.get(url, extra_environ=extra_environ)
+        print('response agency: {}'.format(res))
+        if six.PY2:
+            data_json = json.loads(res.body)
         else:
-            req = urllib.request.Request(url)
-            res = urllib.request.urlopen(req)
-            data_json = json.loads(res.read()) 
+            data_json = json.loads(res.data)
+        # if six.PY2: 
+        #     req = urllib2.Request(url)
+        #     res = urllib2.urlopen(req)
+        #     data_json = json.loads(res.read())
+        # else:
+        #     req = urllib.request.Request(url)
+        #     res = urllib.request.urlopen(req)
+        #     data_json = json.loads(res.read()) 
         print(data_json)
         datasets = [data_json['dataset'][i]['title'] for i in range(0, 5)]
 

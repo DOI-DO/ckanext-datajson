@@ -114,7 +114,7 @@ class TestExport(inherit):
         res = self.app.get(url, extra_environ=extra_environ)
         # zip file
         zip_path = '/tmp/test.zip'
-        zf = zipfile.ZipFile(zip_path, 'wb')
+        zf = zipfile.ZipFile(zip_path, 'w')
         if six.PY2:
             # draft = open('draft_data.json', 'w')
             # draft.write(json.dumps(res.body))

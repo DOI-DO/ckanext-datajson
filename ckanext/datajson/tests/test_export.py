@@ -112,7 +112,6 @@ class TestExport(inherit):
         
         extra_environ = {'REMOTE_USER': self.user_name}
         res = self.app.get(url, extra_environ=extra_environ)
-        print('draft res: {}'.format(res))
         # zip file
         zip_path = '/tmp/test.zip'
         zf = open(zip_path, 'wb')
@@ -187,7 +186,6 @@ class TestExport(inherit):
         url = '/organization/{}/data.json'.format(self.organization['name'])
         extra_environ = {'REMOTE_USER': self.user_name}
         res = self.app.get(url, extra_environ=extra_environ)
-        print('response agency: {}'.format(res))
         if six.PY2:
             data_json = json.loads(res.body)
         else:
@@ -200,7 +198,6 @@ class TestExport(inherit):
         #     req = urllib.request.Request(url)
         #     res = urllib.request.urlopen(req)
         #     data_json = json.loads(res.read()) 
-        print(data_json)
         datasets = [data_json['dataset'][i]['title'] for i in range(0, 5)]
 
         assert self.dataset1['title'] in datasets

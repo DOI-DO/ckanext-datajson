@@ -115,11 +115,12 @@ class TestExport(inherit):
         # zip file
         zip_path = '/tmp/test.zip'
         zf = open(zip_path, 'wb')
-        print(res)
         if six.PY2:
             zf.write(res.body)
+            print(res.body)
         else:
             zf.write(res.data)
+            print(res.data)
         zf.close()
         zfile = zipfile.ZipFile(zip_path, 'r')
         for name in zfile.namelist():

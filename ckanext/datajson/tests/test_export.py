@@ -119,12 +119,12 @@ class TestExport(inherit):
             # draft = open('draft_data.json', 'w')
             # draft.write(json.dumps(res.body))
             # draft.close()
-            zf.writestr('draft_data.json', json.dumps(res.body))
+            zf.writestr('draft_data.json', res.body)
         else:
             # draft = open('draft_data.json', 'w')
             # draft.write(json.dumps(res.data))
             # draft.close()
-            zf.writestr('draft_data.json', json.dumps(res.data))
+            zf.writestr('draft_data.json', res.data)
         zf.close()
         zfile = zipfile.ZipFile(zip_path, 'r')
         for name in zfile.namelist():
@@ -167,6 +167,7 @@ class TestExport(inherit):
         } """  # NOQA
 
         data_res = json.loads(raw)
+        print('\n\nData Res: {}\n\n'.format(data_res))
         datasets = data_res['dataset']
         titles = [d['title'] for d in datasets]
 

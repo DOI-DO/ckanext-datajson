@@ -114,17 +114,17 @@ class TestExport(inherit):
         res = self.app.get(url, extra_environ=extra_environ)
         # zip file
         zip_path = '/tmp/test.zip'
-        zf = open(zip_path, 'wb')
+        zf = zipfile.ZipFile(zip_path, 'wb')
         if six.PY2:
-            draft = open('draft_data.json', 'w')
-            draft.write(json.dumps(res.body))
-            draft.close()
-            zf.write('draft_data.json')
+            # draft = open('draft_data.json', 'w')
+            # draft.write(json.dumps(res.body))
+            # draft.close()
+            zf.writestr('draft_data.json', json.dumps(res.body))
         else:
-            draft = open('draft_data.json', 'w')
-            draft.write(json.dumps(res.data))
-            draft.close()
-            zf.write('draft_data.json')
+            # draft = open('draft_data.json', 'w')
+            # draft.write(json.dumps(res.data))
+            # draft.close()
+            zf.writestr('draft_data.json', json.dumps(res.data))
         zf.close()
         zfile = zipfile.ZipFile(zip_path, 'r')
         for name in zfile.namelist():

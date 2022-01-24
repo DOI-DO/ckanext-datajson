@@ -115,6 +115,7 @@ class TestExport(inherit):
         # zip file
         zip_path = '/tmp/test.zip'
         zf = open(zip_path, 'wb')
+        print(res)
         if six.PY2:
             zf.write(res.body)
         else:

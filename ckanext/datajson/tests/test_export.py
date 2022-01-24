@@ -116,12 +116,12 @@ class TestExport(inherit):
         zip_path = '/tmp/test.zip'
         zf = open(zip_path, 'wb')
         if six.PY2:
-            draft = open('draft_data.json', 'r')
+            draft = open('draft_data.json', 't')
             draft.write(json.dumps(res.body))
             draft.close()
             zf.write('draft_data.json')
         else:
-            draft = open('draft_data.json', 'r')
+            draft = open('draft_data.json', 't')
             draft.write(json.dumps(res.data))
             draft.close()
             zf.write('draft_data.json')

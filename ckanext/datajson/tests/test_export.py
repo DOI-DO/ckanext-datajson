@@ -83,6 +83,7 @@ class TestExport(inherit):
         self.dataset4 = factories.Dataset(**d4)
         d5 = dataset.copy()
         d5.update({'title': 'test 05 dataset', 'unique_id': 't5', 'owner_org': self.subagency1['id']})
+        print('dataset 5: {}'.format(d5))
         self.dataset5 = factories.Dataset(**d5)
 
     def test_draft_json(self):
@@ -104,12 +105,7 @@ class TestExport(inherit):
             app = ckan.config.middleware.make_app(config)
             self.app = CKANZipTestApp(app)
         url = '/organization/{}/draft.json'.format(self.organization['name'])
-        try:
-            print('org title: {}'.format(self.organization['title']))
-            print('org name: {}'.format(self.organization['name']))
-        except Exception:
-            pass
-        
+
         extra_environ = {'REMOTE_USER': self.user_name}
         res = self.app.get(url, extra_environ=extra_environ)
         # zip file
@@ -167,7 +163,6 @@ class TestExport(inherit):
         } """  # NOQA
 
         data_res = json.loads(raw)
-        print('\n\nData Res: {}\n\n'.format(data_res))
         datasets = data_res['dataset']
         titles = [d['title'] for d in datasets]
 

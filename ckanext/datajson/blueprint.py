@@ -146,7 +146,8 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
             query = p.toolkit.get_action('package_search')({}, search_data_dict)
             packages = query['results']
 
-            if len(query['results']):
+            if len(query['results']) and not 'sub-agencies' in model.Group.get(owner_org).extras.col.target \
+                and not model.Group.get(owner_org).extras.col.target['sub-agencies'].state == 'active':
                 json_export_map = get_export_map_json('export.map.json')
 
                 if json_export_map:

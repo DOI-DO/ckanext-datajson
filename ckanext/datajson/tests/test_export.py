@@ -82,7 +82,7 @@ class TestExport(inherit):
         d4.update({'title': 'test 04 dataset', 'unique_id': 't4'})
         self.dataset4 = factories.Dataset(**d4)
         d5 = dataset.copy()
-        d5.update({'title': 'test 05 dataset', 'unique_id': 't5'}) #, 'owner_org': self.subagency1['id']})
+        d5.update({'title': 'test 05 dataset', 'unique_id': 't5', 'owner_org': self.subagency1['id']})
         self.dataset5 = factories.Dataset(**d5)
 
     def test_draft_json(self):

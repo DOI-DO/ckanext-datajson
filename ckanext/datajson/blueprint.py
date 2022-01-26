@@ -188,6 +188,47 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
                     else:
                         break
             else:
+                packages = get_packages(owner_org=owner_org, with_private=False)
+                json_export_map = get_export_map_json('export.map.json')
+
+                if json_export_map:
+                    for pkg in packages:
+                        if json_export_map.get('debug'):
+                            output.append(pkg)
+                        extras = dict([(x['key'], x['value']) for x in pkg.get('extras', {})])
+
+                        if export_type in ['unredacted', 'redacted']:
+                            if 'Draft' == extras.get('publishing_status'):
+                                continue
+                        elif 'draft' == export_type:
+                            if 'publishing_status' not in extras.keys() or extras.get('publishing_status') != 'Draft':
+                                continue
+
+                        redaction_enabled = 'redacted' == export_type
+                        datajson_entry = Package2Pod.convert_package(pkg, json_export_map,
+                                                                     plugin.DataJsonPlugin.site_url, redaction_enabled)
+
+                        errors = None
+                        if 'errors' in datajson_entry.keys():
+                            errors_json.append(datajson_entry)
+                            errors = datajson_entry.get('errors')
+                            datajson_entry = None
+
+                        if datajson_entry and \
+                                (not json_export_map.get('validation_enabled') or is_valid(datajson_entry)):
+                            output.append(datajson_entry)
+                        else:
+                            if errors:
+                                logger.warn("Dataset id=[%s], title=[%s], organization=[%s] omitted, reason below:\n\t%s\n",
+                                            pkg.get('id', None), pkg.get('title', None),
+                                            pkg.get('organization').get('title'), errors)
+                            else:
+                                logger.warn("Dataset id=[%s], title=[%s], organization=[%s] omitted, reason above.\n",
+                                            pkg.get('id', None), pkg.get('title', None), pkg.get('organization').get('title'))
+                    if 'datajson' == export_type and len(query['results']):
+                        page += 1
+                    else:
+                        break
                 break
         if json_export_map:
             data = Package2Pod.wrap_json_catalog(output, json_export_map)
@@ -242,6 +283,8 @@ def get_all_group_packages(group_id, with_private=True):
 
     for pkg_rev in model.Group.get(group_id).packages(with_private=with_private, context={'user_is_admin': True}):
         result.append(model_dictize.package_dictize(pkg_rev, {'model': model}))
+
+    logger.info('\n\nResult: {}\n\n'.format(result))
 
     return result
 
@@ -350,10 +393,6 @@ def validator():
     return render('datajsonvalidator.html')
 
 
-def test_for_gil():
-    logger.info('\n\n\n\n\n\n\n {} \n\n\n\n\n\n\n'.format(make_json(export_type='datajson', owner_org=None)))
-
-
 datapusher.add_url_rule('/internal/data.json',
                         view_func=generate_json)
 datapusher.add_url_rule('/organization/<org_id>/data.json',
@@ -366,4 +405,3 @@ datapusher.add_url_rule('/organization/<org_id>/draft.json',
                         view_func=generate_draft)
 datapusher.add_url_rule("/pod/validate",
                         view_func=validator)
-datapusher.add_url_rule("/test/gil", view_func=test_for_gil)

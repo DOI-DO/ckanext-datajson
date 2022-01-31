@@ -18,7 +18,10 @@ from flask import Blueprint
 from flask.wrappers import Response
 from jsonschema.exceptions import best_match
 
-import plugin
+if six.PY2:
+    import plugin
+else:
+    from . import plugin
 
 from .helpers import get_export_map_json, get_validator
 from .package2pod import Package2Pod
@@ -33,6 +36,9 @@ _zip_name = ''
 
 
 def generate_json():
+    # datasets = get_packages(page=1)
+    datasets = get_packages()
+    logger.info('\n\n\nDatasets {}\n\n\n'.format(datasets))
     return generate_output(org_id=None)
 
 
@@ -115,13 +121,16 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
     eh.setFormatter(formatter)
     logger.addHandler(eh)
 
+    # logger.info('\n\n\n{}\n\n\n'.format(get_datasets(owner_org=owner_org, with_private=with_private)))
+
     data = ''
     output = []
     errors_json = []
     Package2Pod.seen_identifiers = set()
 
     # first_line = True
-
+    # datasets = get_datasets(group_id=owner_org, with_private=with_private)
+    # logger.info('\n\n\nDATASETS {}\n\n\n'.format(datasets))
     try:
         n = 500
         # json_export_map = {}
@@ -187,6 +196,7 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
                         page += 1
                     else:
                         break
+                data = Package2Pod.wrap_json_catalog(output, json_export_map)
             else:
                 packages = get_packages(owner_org=owner_org, with_private=False)
                 json_export_map = get_export_map_json('export.map.json')
@@ -229,9 +239,10 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
                         page += 1
                     else:
                         break
+                data = Package2Pod.wrap_json_catalog(output, json_export_map)
                 break
-        if json_export_map:
-            data = Package2Pod.wrap_json_catalog(output, json_export_map)
+
+            
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         filename = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
@@ -247,32 +258,129 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
     return data
 
 
-def get_packages(owner_org, with_private=True):
+def get_packages(export_type='datajson', owner_org=None, with_private=True):
     # Build the data.json file.
-    packages = get_all_group_packages(group_id=owner_org, with_private=with_private)
+    
+    # have method return output for each iteration
+
     # get packages for sub-agencies.
-    sub_agency = model.Group.get(owner_org)
+    # all_packages = []
+    # current_packages = get_data_output(owner_org=owner_org, with_private=with_private)
+    # json_export_map = get_export_map_json('export.map.json')
+    # output = []
 
-    if six.PY2:
-        if 'sub-agencies' in sub_agency.extras.col.target \
-                and sub_agency.extras.col.target['sub-agencies'].state == 'active':
-            sub_agencies = sub_agency.extras.col.target['sub-agencies'].value
-            sub_agencies_list = sub_agencies.split(",")
-            for sub in sub_agencies_list:
-                sub_packages = get_all_group_packages(group_id=sub, with_private=with_private)
-                for sub_package in sub_packages:
-                    packages.append(sub_package)
-    else:
-        if 'sub-agencies' in sub_agency.extras.col.keys() \
-                and sub_agency.extras.col['sub-agencies'].state == 'active':
-            sub_agencies = sub_agency.extras.col['sub-agencies'].value
-            sub_agencies_list = sub_agencies.split(",")
-            for sub in sub_agencies_list:
-                sub_packages = get_all_group_packages(group_id=sub, with_private=with_private)
-                for sub_package in sub_packages:
-                    packages.append(sub_package)
+    # if json_export_map and current_packages:
+    #     if not owner_org:
+    #         for pkg in current_packages:
+    #             if json_export_map.get('debug'):
+    #                 output.append(pkg)
+    #             extras = dict([(x['key'], x['value']) for x in pkg.get('extras', {})])
+    #             datajson_entry = Package2Pod.convert_package(pkg, json_export_map, plugin.DataJsonPlugin.site_url, False)
+    #             if datajson_entry:
+    #                 output.append(datajson_entry)
+                
+    #         return output
+    #     else:
+    #         pass
+        
 
-    return packages
+    # if six.PY2:
+    #     if 'sub-agencies' in sub_agency.extras.col.target \
+    #             and sub_agency.extras.col.target['sub-agencies'].state == 'active':
+    #         sub_agencies = sub_agency.extras.col.target['sub-agencies'].value
+    #         sub_agencies_list = sub_agencies.split(",")
+    #         for sub in sub_agencies_list:
+    #             sub_packages = get_all_group_packages(group_id=sub, with_private=with_private)
+    #             for sub_package in sub_packages:
+    #                 datasets.append(sub_package)
+    # elif six.PY3:
+    #     if 'sub-agencies' in sub_agency.extras.col.keys() \
+    #             and sub_agency.extras.col['sub-agencies'].state == 'active':
+    #         sub_agencies = sub_agency.extras.col['sub-agencies'].value
+    #         sub_agencies_list = sub_agencies.split(",")
+    #         for sub in sub_agencies_list:
+    #             sub_packages = get_all_group_packages(group_id=sub, with_private=with_private)
+    #             for sub_package in sub_packages:
+    #                 datasets.append(sub_package)
+
+    output = []
+    json_export_map = get_export_map_json('export.map.json')
+    page = 1
+    while True:
+        packages = get_data_output(page=page, owner_org=owner_org, with_private=False)
+        if packages:
+            for pkg in packages:
+                if json_export_map.get('debug'): 
+                    output.append(pkg)
+                extras = dict([(x['key'], x['value']) for x in pkg.get('extras', {})])
+
+                if export_type in ['unredacted', 'redacted']:
+                    if 'Draft' == extras.get('publishing_status'):
+                        continue
+                elif export_type == 'draft':
+                    if 'publishing_status' not in extras.keys() or extras.get('publishing_status') != 'Draft':
+                        continue
+
+                redaction_enabled = ('redacted' == export_type)
+                datajson_entry = Package2Pod.convert_package(pkg, json_export_map, plugin.DataJsonPlugin.site_url, redaction_enabled)
+                
+                if datajson_entry and \
+                    (not json_export_map.get('validation_enabled') or is_valid(datajson_entry)):
+                    output.append(datajson_entry)
+            if 'datajson' == export_type:
+                page += 1
+            else: 
+                break
+        else: 
+            break
+    data = Package2Pod.wrap_json_catalog(output, json_export_map)
+    return data
+
+    
+
+
+def get_data_output(page=0, owner_org=None, with_private=False):
+    json_export_map = get_export_map_json('export.map.json')
+    full_output = []
+    # page = 0
+    while True:
+        output = get_datasets(page=page, owner_org=owner_org, with_private=False)
+        if output:
+            full_output.append(output)
+            break
+        else:
+            break
+    full_output = [entry for item in full_output for entry in item]
+    # data = Package2Pod.wrap_json_catalog(full_output, json_export_map)
+    return full_output
+
+def get_datasets(page=1, with_private=False, owner_org=None):
+    dataset_list = []
+
+    q = '+capacity:public' if not with_private else '*:*'
+    n = 500
+
+    fq = 'dataset_type:dataset'
+
+    if owner_org:
+        fq += " AND organization:" + owner_org
+    
+    while True:
+        search_data_dict = {
+            'q': q,
+            'fq': fq,
+            'sort': 'metadata_modified desc',
+            'rows': n,
+            'start': n * (page - 1),
+        }
+
+        query = p.toolkit.get_action('package_search')({}, search_data_dict)
+
+        if len(query['results']):
+            dataset_list.extend(query['results'])
+            return dataset_list
+        else:
+            return None
 
 
 def get_all_group_packages(group_id, with_private=True):

@@ -7,6 +7,8 @@ import sys
 from builtins import str
 from struct import pack
 
+from simplejson import OrderedDict
+
 sys.path.append(os.getcwd())
 
 import ckan.lib.dictization.model_dictize as model_dictize
@@ -242,7 +244,6 @@ def test_json_create(export_type='datajson', owner_org=None, with_private=False)
         else:
             break
     
-    logger.info('\n\nOUTPUT {}\n\n'.format(output))
     return output
 
 
@@ -273,10 +274,14 @@ def json_create(owner_org=None, export_type='datajson', with_private=False):
     if sub_agencies_list:
         for agency in sub_agencies_list:
             data_list.append(test_json_create(owner_org=agency, with_private=with_private))
-
-    if len(data_list) and sub_agencies_list:
-        data_list = [data for item in data_list for data in item]
+    logger.info('\n\n\n JSON {} \n\n\n'.format(data_list))
+    if len(data_list):
+        data_list = [OrderedDict(dict(data)) for item in data_list for data in item]
+        for data in data_list:
+            logger.info('\n\n {} \n\n'.format(data))
     json_data = Package2Pod.wrap_json_catalog(data_list, json_export_map)
+
+    
     return json_data
 
 

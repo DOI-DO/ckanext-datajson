@@ -162,6 +162,7 @@ class TestExport(inherit):
         } """  # NOQA
 
         data_res = json.loads(raw)
+        print('data res'.format(data_res))
         datasets = data_res['dataset']
         titles = [d['title'] for d in datasets]
 

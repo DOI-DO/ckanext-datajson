@@ -93,7 +93,7 @@ def generate(export_type='datajson', org_id=None):
     # del Response.headers["Cache-Control"]
     # del Response.headers["Pragma"]
 
-    data = json_create(export_type='datajson', owner_org=org_id)
+    data = json_create(export_type=export_type, owner_org=org_id)
     return p.toolkit.literal(json.dumps(data))
 
 
@@ -268,7 +268,7 @@ def json_create(owner_org=None, export_type='datajson', with_private=False):
     data_list = []
     json_export_map = get_export_map_json('export.map.json')
     try:
-        data = test_json_create(owner_org=owner_org, with_private=with_private)
+        data = test_json_create(owner_org=owner_org, with_private=with_private, export_type=export_type)
     except:
         logger.warn('No data found for {}'.format(owner_org))
     data_list.append(data)
@@ -290,7 +290,7 @@ def json_create(owner_org=None, export_type='datajson', with_private=False):
 
     if sub_agencies_list:
         for agency in sub_agencies_list:
-            data_list.append(test_json_create(owner_org=agency, with_private=with_private))
+            data_list.append(test_json_create(owner_org=agency, with_private=with_private, export_type=export_type))
     if len(data_list):
         data_list = [OrderedDict(dict(data)) for item in data_list for data in item]
     json_data = Package2Pod.wrap_json_catalog(data_list, json_export_map)

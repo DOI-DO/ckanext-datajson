@@ -201,7 +201,7 @@ class TestExport(inherit):
         #     req = urllib.request.Request(url)
         #     res = urllib.request.urlopen(req)
         #     data_json = json.loads(res.read()) 
-        datasets = [data_json['dataset'][i]['title'] for i in range(0, 5)]
+        datasets = [data_json['dataset'][i]['title'] for i in range(len(data_json))]
         print(data_json)
         assert self.dataset1['title'] in datasets
         assert self.dataset2['title'] in datasets

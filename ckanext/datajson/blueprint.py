@@ -6,7 +6,6 @@ import os
 import sys
 from builtins import str
 
-import StringIO
 from simplejson import OrderedDict
 
 # from struct import pack
@@ -25,8 +24,11 @@ from flask.wrappers import Response
 from jsonschema.exceptions import best_match
 
 if six.PY2:
+    import StringIO
+
     import plugin
 else:
+    from io import StringIO
     from . import plugin
 
 from .helpers import get_export_map_json, get_validator

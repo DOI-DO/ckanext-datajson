@@ -212,38 +212,47 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
     return data
 
 def test_json_create(export_type='datajson', owner_org=None, with_private=False):
-    packages = get_data_output(owner_org=owner_org, with_private=with_private)
+    # packages = get_data_output(owner_org=owner_org, with_private=with_private)
     output = []
     json_export_map = get_export_map_json('export.map.json')
+    page = 1
+    while True:
+        packages = get_datasets(page=page, owner_org=owner_org, with_private=with_private)
+        if packages:
+            for pkg in packages:
+                if json_export_map.get('debug'):
+                    output.append(pkg)
+                if pkg.get('extras', {}):
+                    extras = dict([(x['key'], x['value']) for x in pkg.get('extras', {})])
+                if export_type in ['unredacted', 'redacted']:
+                    if 'Draft' == extras.get('publishing_status'):
+                        continue
 
-    for pkg in packages:
-        if json_export_map.get('debug'):
-            output.append(pkg)
-        if pkg.get('extras', {}):
-            extras = dict([(x['key'], x['value']) for x in pkg.get('extras', {})])
-        if export_type in ['unredacted', 'redacted']:
-            if 'Draft' == extras.get('publishing_status'):
-                continue
+                elif 'draft' == export_type:
+                    if 'publishing_status' not in extras.keys() or extras.get('publishing_status') != 'Draft':
+                        continue
 
-        elif 'draft' == export_type:
-            if 'publishing_status' not in extras.keys() or extras.get('publishing_status') != 'Draft':
-                continue
+                redaction_enabled = ('redacted' == export_type)
+                datajson_entry = Package2Pod.convert_package(pkg, json_export_map, plugin.DataJsonPlugin.site_url, redaction_enabled)
 
-        redaction_enabled = ('redacted' == export_type)
-        datajson_entry = Package2Pod.convert_package(pkg, json_export_map, plugin.DataJsonPlugin.site_url, redaction_enabled)
-        logger.info('\n\n PKG {}\n\n'.format(datajson_entry))
-
-        if datajson_entry and \
-            (not json_export_map.get('validation_enabled') or is_valid(datajson_entry)):
-            output.append(datajson_entry)
-
+                if datajson_entry and \
+                    (not json_export_map.get('validation_enabled') or is_valid(datajson_entry)):
+                    output.append(datajson_entry)
+            page +=1
+        else:
+            break
+    
+    logger.info('\n\nOUTPUT {}\n\n'.format(output))
     return output
 
 
 def json_create(owner_org=None, export_type='datajson', with_private=False):
     data_list = []
     json_export_map = get_export_map_json('export.map.json')
-    data = test_json_create(owner_org=owner_org, with_private=with_private)
+    try:
+        data = test_json_create(owner_org=owner_org, with_private=with_private)
+    except:
+        logger.warn('No data found for {}'.format(owner_org))
     data_list.append(data)
     sub_agencies_list = None
     if owner_org:
@@ -261,22 +270,14 @@ def json_create(owner_org=None, export_type='datajson', with_private=False):
                 sub_agencies = sub_agency.extras.col['sub-agencies'].value
                 sub_agencies_list = sub_agencies.split(",")
 
-        if sub_agencies_list:
-            for agency in sub_agencies_list:
-                data_list.append(test_json_create(owner_org=agency, with_private=with_private))
+    if sub_agencies_list:
+        for agency in sub_agencies_list:
+            data_list.append(test_json_create(owner_org=agency, with_private=with_private))
 
-        if len(data_list):
-            logger.info('\ncurrent data list {}\n'.format(data_list))
-            data_list = [data for item in data_list for data in item]
-        json_data = Package2Pod.wrap_json_catalog(data_list, json_export_map)
-        return json_data
-    else:
-
-        if len(data_list):
-            data_list = [data for item in data_list for data in item]
-        json_data = Package2Pod.wrap_json_catalog(data_list, json_export_map)
-        return json_data
-
+    if len(data_list) and sub_agencies_list:
+        data_list = [data for item in data_list for data in item]
+    json_data = Package2Pod.wrap_json_catalog(data_list, json_export_map)
+    return json_data
 
 
 def get_data_output(owner_org=None, with_private=False):
@@ -475,9 +476,8 @@ def validator():
 # def test_json():
 #     return json_create(owner_org=None)
 
-# def log_json():
-#     packages = get_data_output()
-#     return test_json_create(packages=packages, owner_org=None)
+def log_json():
+    return test_json_create(owner_org=None)
 
 
 datapusher.add_url_rule('/internal/data.json',
@@ -499,5 +499,5 @@ datapusher.add_url_rule("/pod/validate",
 # # datapusher.add_url_rule('/<org_id>/create-json', view_func=get_org_json_output)
 # datapusher.add_url_rule('/<org_id>/agencies', view_func=log_sub)
 # datapusher.add_url_rule('/test-json', view_func=test_json)
-# datapusher.add_url_rule('/log-json', view_func=log_json)
+datapusher.add_url_rule('/log-json', view_func=log_json)
 

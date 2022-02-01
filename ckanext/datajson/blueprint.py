@@ -7,6 +7,7 @@ import sys
 from builtins import str
 from struct import pack
 
+import StringIO
 from simplejson import OrderedDict
 
 sys.path.append(os.getcwd())
@@ -214,7 +215,13 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
     return data
 
 def test_json_create(export_type='datajson', owner_org=None, with_private=False):
-    # packages = get_data_output(owner_org=owner_org, with_private=with_private)
+    stream = StringIO.StringIO()
+    eh = logging.StreamHandler(stream)
+    errors_json = []
+    eh.setLevel(logging.WARN)
+    formatter = logging.Formatter('%(asctime)s - %(message)s')
+    eh.setFormatter(formatter)
+    logger.addHandler(eh)
     output = []
     json_export_map = get_export_map_json('export.map.json')
     page = 1
@@ -237,10 +244,20 @@ def test_json_create(export_type='datajson', owner_org=None, with_private=False)
                 redaction_enabled = ('redacted' == export_type)
                 datajson_entry = Package2Pod.convert_package(pkg, json_export_map, plugin.DataJsonPlugin.site_url, redaction_enabled)
 
+                errors = None
+                if 'errors' in datajson_entry.keys():
+                    errors_json.append(datajson_entry)
+                    errors = datajson_entry.get('errors')
+                    datajson_entry = None
+
                 if datajson_entry and \
                     (not json_export_map.get('validation_enabled') or is_valid(datajson_entry)):
                     output.append(datajson_entry)
-            page +=1
+            
+            if 'datajson' == export_type:
+                page +=1
+            else:
+                break
         else:
             break
     
@@ -274,11 +291,8 @@ def json_create(owner_org=None, export_type='datajson', with_private=False):
     if sub_agencies_list:
         for agency in sub_agencies_list:
             data_list.append(test_json_create(owner_org=agency, with_private=with_private))
-    logger.info('\n\n\n JSON {} \n\n\n'.format(data_list))
     if len(data_list):
         data_list = [OrderedDict(dict(data)) for item in data_list for data in item]
-        for data in data_list:
-            logger.info('\n\n {} \n\n'.format(data))
     json_data = Package2Pod.wrap_json_catalog(data_list, json_export_map)
 
     

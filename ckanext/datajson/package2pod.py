@@ -516,24 +516,27 @@ class Wrappers(object):
             if valid_resource:
                 arr += [OrderedDict(striped_resource)]
 
-        for e in package['extras']:
-            if e['key'] == 'harvest_object_id':
-                try:
-                    harvest_object_id = e['value']
-                except Exception:
-                    log.warn('Could not find harvest object ID')
-                # Get full harvest object
-                context = {'model': model, 'user': p.toolkit.c.user or p.toolkit.c.author}
-                harvest_obj = logic.get_action('harvest_object_show')(context, {'id': harvest_object_id})
-                # Build full metadata link
-                resource = OrderedDict([('@type', "dcat:Distribution")])
-                resource["title"] = "Original Metadata"
-                resource["downloadURL"] = SITE_URL + "/harvest/object/" + harvest_obj['id']
-                resource["conformsTo"] = "http://www.isotc211.org/2005/gmi"
-                resource["description"] = "The metadata original source"
-                resource["mediaType"] = "text/xml"
-                resource["format"] = "XML"
-                arr += [OrderedDict(resource)]
+        try:
+            for e in package['extras']:
+                if e['key'] == 'harvest_object_id':
+                    try:
+                        harvest_object_id = e['value']
+                    except Exception:
+                        log.warn('Could not find harvest object ID')
+                    # Get full harvest object
+                    context = {'model': model, 'user': p.toolkit.c.user or p.toolkit.c.author}
+                    harvest_obj = logic.get_action('harvest_object_show')(context, {'id': harvest_object_id})
+                    # Build full metadata link
+                    resource = OrderedDict([('@type', "dcat:Distribution")])
+                    resource["title"] = "Original Metadata"
+                    resource["downloadURL"] = SITE_URL + "/harvest/object/" + harvest_obj['id']
+                    resource["conformsTo"] = "http://www.isotc211.org/2005/gmi"
+                    resource["description"] = "The metadata original source"
+                    resource["mediaType"] = "text/xml"
+                    resource["format"] = "XML"
+                    arr += [OrderedDict(resource)]
+        except Exception:
+            log.warn('Unable to get package extras')
 
         return arr
 

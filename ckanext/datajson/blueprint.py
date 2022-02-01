@@ -267,10 +267,7 @@ def test_json_create(export_type='datajson', owner_org=None, with_private=False)
 def json_create(owner_org=None, export_type='datajson', with_private=False):
     data_list = []
     json_export_map = get_export_map_json('export.map.json')
-    try:
-        data = test_json_create(owner_org=owner_org, with_private=with_private, export_type=export_type)
-    except:
-        logger.warn('No data found for {}'.format(owner_org))
+    data = test_json_create(owner_org=owner_org, with_private=with_private, export_type=export_type)
     data_list.append(data)
     sub_agencies_list = None
     if owner_org:

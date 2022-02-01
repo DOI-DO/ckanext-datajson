@@ -5,10 +5,12 @@ import logging
 import os
 import sys
 from builtins import str
-from struct import pack
 
 import StringIO
 from simplejson import OrderedDict
+
+# from struct import pack
+
 
 sys.path.append(os.getcwd())
 
@@ -44,7 +46,6 @@ def generate_json():
 
 
 def generate_org_json(org_id):
-    
     return generate_output(org_id=org_id)
 
 
@@ -197,9 +198,6 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
                     else:
                         break
             data = Package2Pod.wrap_json_catalog(output, json_export_map)
-            
-
-            
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         filename = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
@@ -213,6 +211,7 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
 
     # Skip compression if we export whole /data.json catalog
     return data
+
 
 def test_json_create(export_type='datajson', owner_org=None, with_private=False):
     stream = StringIO.StringIO()
@@ -231,7 +230,7 @@ def test_json_create(export_type='datajson', owner_org=None, with_private=False)
             for pkg in packages:
                 if json_export_map.get('debug'):
                     output.append(pkg)
-                
+
                 extras = dict([(x['key'], x['value']) for x in pkg.get('extras', {})])
                 if export_type in ['unredacted', 'redacted']:
                     if 'Draft' == extras.get('publishing_status'):
@@ -242,25 +241,28 @@ def test_json_create(export_type='datajson', owner_org=None, with_private=False)
                         continue
 
                 redaction_enabled = ('redacted' == export_type)
-                datajson_entry = Package2Pod.convert_package(pkg, json_export_map, plugin.DataJsonPlugin.site_url, redaction_enabled)
+                datajson_entry = Package2Pod.convert_package(pkg,
+                                                             json_export_map,
+                                                             plugin.DataJsonPlugin.site_url,
+                                                             redaction_enabled)
 
-                errors = None
+                # errors = None
                 if 'errors' in datajson_entry.keys():
                     errors_json.append(datajson_entry)
-                    errors = datajson_entry.get('errors')
+                    # errors = datajson_entry.get('errors')
                     datajson_entry = None
 
                 if datajson_entry and \
-                    (not json_export_map.get('validation_enabled') or is_valid(datajson_entry)):
+                        (not json_export_map.get('validation_enabled') or is_valid(datajson_entry)):
                     output.append(datajson_entry)
-            
+
             if 'datajson' == export_type:
-                page +=1
+                page += 1
             else:
                 break
         else:
             break
-    
+
     return output
 
 
@@ -272,16 +274,16 @@ def json_create(owner_org=None, export_type='datajson', with_private=False):
     sub_agencies_list = None
     if owner_org:
         sub_agency = model.Group.get(owner_org)
-        
+
         if six.PY2:
             if 'sub-agencies' in sub_agency.extras.col.target \
-                and sub_agency.extras.col.target['sub-agencies'].state == 'active':
+                    and sub_agency.extras.col.target['sub-agencies'].state == 'active':
                 sub_agencies = sub_agency.extras.col.target['sub-agencies'].value
                 sub_agencies_list = sub_agencies.split(",")
-            
+
         else:
             if 'sub-agencies' in sub_agency.extras.col.keys() \
-                and sub_agency.extras.col['sub-agencies'].state == 'active':
+                    and sub_agency.extras.col['sub-agencies'].state == 'active':
                 sub_agencies = sub_agency.extras.col['sub-agencies'].value
                 sub_agencies_list = sub_agencies.split(",")
 
@@ -289,26 +291,26 @@ def json_create(owner_org=None, export_type='datajson', with_private=False):
         for agency in sub_agencies_list:
             data_list.append(test_json_create(owner_org=agency, with_private=with_private, export_type=export_type))
     if len(data_list):
-        data_list = [OrderedDict(dict(data)) for item in data_list for data in item]
+        data_list = [OrderedDict(dict(jsonitems)) for item in data_list for jsonitems in item]
     json_data = Package2Pod.wrap_json_catalog(data_list, json_export_map)
 
-    
     return json_data
 
 
 def get_data_output(owner_org=None, with_private=False):
     full_output = []
     page = 1
-    
+
     while True:
-        output=get_datasets(page=page, owner_org=owner_org, with_private=with_private)
+        output = get_datasets(page=page, owner_org=owner_org, with_private=with_private)
         if output:
             full_output.append(output)
             page += 1
         break
-    
-    full_output = [item for output in full_output for item in output]
+
+    full_output = [item for dataoutput in full_output for item in dataoutput]
     return full_output
+
 
 def get_datasets(page=1, with_private=False, owner_org=None):
     dataset_list = []
@@ -320,7 +322,7 @@ def get_datasets(page=1, with_private=False, owner_org=None):
 
     if owner_org:
         fq += " AND organization:" + owner_org
-    
+
     search_data_dict = {
         'q': q,
         'fq': fq,
@@ -480,17 +482,6 @@ def validator():
 
     return render('datajsonvalidator.html')
 
-# def get_org_output(org_id):
-#     return get_data_output(owner_org=org_id)
-
-# # def get_org_json_output(org_id):
-# #     return create_json(owner_org=org_id)
-
-# def log_sub(org_id):
-#     return json_create(owner_org=org_id)
-
-# def test_json():
-#     return json_create(owner_org=None)
 
 def log_json():
     return test_json_create(owner_org=None)
@@ -516,4 +507,3 @@ datapusher.add_url_rule("/pod/validate",
 # datapusher.add_url_rule('/<org_id>/agencies', view_func=log_sub)
 # datapusher.add_url_rule('/test-json', view_func=test_json)
 datapusher.add_url_rule('/log-json', view_func=log_json)
-

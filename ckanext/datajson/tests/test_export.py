@@ -12,12 +12,10 @@ from ckan.tests import factories
 from ckan.tests.helpers import reset_db
 
 if six.PY2:
-    import urllib2
     from ckan.tests.helpers import FunctionalTestBase
     inherit = FunctionalTestBase
 else:
     inherit = object
-    import urllib
 
     import ckan.config.middleware
     from ckan.common import config
@@ -162,7 +160,7 @@ class TestExport(inherit):
         } """  # NOQA
 
         data_res = json.loads(raw)
-        print('data res'.format(data_res))
+        print('data res {}'.format(data_res))
         datasets = data_res['dataset']
         titles = [d['title'] for d in datasets]
 
@@ -193,15 +191,7 @@ class TestExport(inherit):
             data_json = json.loads(res.body)
         else:
             data_json = json.loads(res.data)
-        # if six.PY2: 
-        #     req = urllib2.Request(url)
-        #     res = urllib2.urlopen(req)
-        #     data_json = json.loads(res.read())
-        # else:
-        #     req = urllib.request.Request(url)
-        #     res = urllib.request.urlopen(req)
-        #     data_json = json.loads(res.read()) 
-        # datasets = [data_json['dataset'][i]['title'] for i in range(len(data_json))]
+
         datasets = data_json['dataset']
         titles = [datasets[i]['title'] for i in range(len(datasets))]
         print(data_json)

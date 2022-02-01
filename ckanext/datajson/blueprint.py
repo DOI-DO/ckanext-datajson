@@ -24,7 +24,7 @@ from flask.wrappers import Response
 from jsonschema.exceptions import best_match
 
 if six.PY2:
-    import StringIO
+    from StringIO import StringIO
 
     import plugin
 else:
@@ -216,7 +216,7 @@ def make_json(export_type='datajson', owner_org=None, with_private=False):
 
 
 def test_json_create(export_type='datajson', owner_org=None, with_private=False):
-    stream = StringIO.StringIO()
+    stream = StringIO()
     eh = logging.StreamHandler(stream)
     errors_json = []
     eh.setLevel(logging.WARN)

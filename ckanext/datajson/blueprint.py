@@ -231,8 +231,8 @@ def test_json_create(export_type='datajson', owner_org=None, with_private=False)
             for pkg in packages:
                 if json_export_map.get('debug'):
                     output.append(pkg)
-                if pkg.get('extras', {}):
-                    extras = dict([(x['key'], x['value']) for x in pkg.get('extras', {})])
+                
+                extras = dict([(x['key'], x['value']) for x in pkg.get('extras', {})])
                 if export_type in ['unredacted', 'redacted']:
                     if 'Draft' == extras.get('publishing_status'):
                         continue

@@ -163,11 +163,11 @@ def get_json_entries(export_type='datajson', owner_org=None, with_private=False)
                     else:
                         if errors:
                             logger.warn("Dataset id=[%s], title=[%s], organization=[%s] omitted, reason below:\n\t%s\n",
-                                         pkg.get('id', None), pkg.get('title', None),
-                                         pkg.get('organization').get('title'), errors)
+                                        pkg.get('id', None), pkg.get('title', None),
+                                        pkg.get('organization').get('title'), errors)
                         else:
                             logger.warn("Dataset id=[%s], title=[%s], organization=[%s] omitted, reason above.\n",
-                                         pkg.get('id', None), pkg.get('title', None), pkg.get('organization').get('title'))
+                                        pkg.get('id', None), pkg.get('title', None), pkg.get('organization').get('title'))
                 if 'datajson' == export_type:
                     page += 1
                 else:
@@ -389,10 +389,6 @@ def validator():
     return render('datajsonvalidator.html')
 
 
-def log_json():
-    return test_create_json(owner_org=None)
-
-
 datapusher.add_url_rule('/internal/data.json',
                         view_func=generate_json)
 datapusher.add_url_rule('/organization/<org_id>/data.json',
@@ -405,11 +401,3 @@ datapusher.add_url_rule('/organization/<org_id>/draft.json',
                         view_func=generate_draft)
 datapusher.add_url_rule("/pod/validate",
                         view_func=validator)
-# datapusher.add_url_rule("/get-datasets", view_func=get_datasets)
-# datapusher.add_url_rule('/get-data-output', view_func=get_data_output)
-# datapusher.add_url_rule('/<org_id>/get-data-output', view_func=get_org_output)
-# datapusher.add_url_rule('/create-json', view_func=create_json)
-# # datapusher.add_url_rule('/<org_id>/create-json', view_func=get_org_json_output)
-# datapusher.add_url_rule('/<org_id>/agencies', view_func=log_sub)
-# datapusher.add_url_rule('/test-json', view_func=test_json)
-datapusher.add_url_rule('/log-json', view_func=log_json)

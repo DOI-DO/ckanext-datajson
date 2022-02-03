@@ -6,13 +6,6 @@ import os
 import sys
 from builtins import str
 
-from simplejson import OrderedDict
-
-# from struct import pack
-
-
-sys.path.append(os.getcwd())
-
 import ckan.lib.dictization.model_dictize as model_dictize
 import ckan.model as model
 import ckan.plugins as p
@@ -22,6 +15,13 @@ from ckan.plugins.toolkit import render, request
 from flask import Blueprint
 from flask.wrappers import Response
 from jsonschema.exceptions import best_match
+from simplejson import OrderedDict
+
+# from struct import pack
+
+
+# sys.path.append(os.getcwd())
+
 
 if six.PY2:
     from StringIO import StringIO
@@ -68,6 +68,7 @@ def generate_draft(org_id):
 
 
 def generate(export_type='datajson', org_id=None):
+    """ generate a JSON response """
     logger.debug('Generating JSON for {} to {} ({})'.format(export_type, org_id, c.user))
 
     if export_type not in ['draft', 'redacted', 'unredacted']:
@@ -101,6 +102,7 @@ def generate(export_type='datajson', org_id=None):
 
 
 def generate_output(org_id=None):
+    """ generate a JSON response """
     global _errors_json
     _errors_json = []
     # set content type (charset required or pylons throws an error)

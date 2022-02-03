@@ -6,13 +6,6 @@ import os
 import sys
 from builtins import str
 
-from simplejson import OrderedDict
-
-# from struct import pack
-
-
-sys.path.append(os.getcwd())
-
 import ckan.lib.dictization.model_dictize as model_dictize
 import ckan.model as model
 import ckan.plugins as p
@@ -22,6 +15,13 @@ from ckan.plugins.toolkit import render, request
 from flask import Blueprint
 from flask.wrappers import Response
 from jsonschema.exceptions import best_match
+from simplejson import OrderedDict
+
+# from struct import pack
+
+
+sys.path.append(os.getcwd())
+
 
 if six.PY2:
     from StringIO import StringIO
@@ -68,6 +68,7 @@ def generate_draft(org_id):
 
 
 def generate(export_type='datajson', org_id=None):
+    """ generate a JSON response """
     logger.debug('Generating JSON for {} to {} ({})'.format(export_type, org_id, c.user))
 
     if export_type not in ['draft', 'redacted', 'unredacted']:
@@ -131,7 +132,9 @@ def get_json_entries(export_type='datajson', owner_org=None, with_private=False)
     try:
         while True:
             packages = get_datasets(page=page, owner_org=owner_org, with_private=with_private)
-            if packages:
+            if not packages: 
+                break
+            else:
                 for pkg in packages:
                     if json_export_map.get('debug'):
                         output.append(pkg)
@@ -172,8 +175,7 @@ def get_json_entries(export_type='datajson', owner_org=None, with_private=False)
                     page += 1
                 else:
                     break
-            else:
-                break
+
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         filename = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
@@ -389,7 +391,7 @@ def validator():
     return render('datajsonvalidator.html')
 
 
-datapusher.add_url_rule('/internal/data.json',
+datapusher.add_url_rule('/data.json',
                         view_func=generate_json)
 datapusher.add_url_rule('/organization/<org_id>/data.json',
                         view_func=generate_org_json)

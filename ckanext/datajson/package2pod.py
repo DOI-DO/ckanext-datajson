@@ -1,19 +1,28 @@
 from __future__ import absolute_import
-from builtins import str
-from builtins import range
-from builtins import object
+
+from builtins import object, range, str
+
 try:
     from collections import OrderedDict  # 2.7
 except ImportError:
     from sqlalchemy.util import OrderedDict
 
-from ckan.lib import helpers as h
-from logging import getLogger
+import collections
+import json
 import re
+from logging import getLogger
 
-from . import helpers
+import ckan.plugins as p
+import ckan.plugins.toolkit as toolkit
+import ckan.plugins.toolkit as tk
+from ckan import logic, model
+from ckan.lib import helpers as h
+
+from . import datajsonvalidator, helpers
 
 log = getLogger(__name__)
+
+SITE_URL = 'localhost:5000'
 
 
 class Package2Pod(object):
@@ -24,7 +33,9 @@ class Package2Pod(object):
 
     @staticmethod
     def wrap_json_catalog(dataset_dict, json_export_map):
-        catalog_headers = [(x, y) for x, y in json_export_map.get('catalog_headers').items()]
+
+        catalog_headers = [(x, y) for x, y in json_export_map.get('catalog_headers').items()
+                           if json_export_map.get('catalog_headers')]
         catalog = OrderedDict(
             catalog_headers + [('dataset', dataset_dict)]
         )
@@ -59,9 +70,12 @@ class Package2Pod(object):
         return content
 
     @staticmethod
-    def convert_package(package, json_export_map, redaction_enabled=False):
+    def convert_package(package, json_export_map, site_url, redaction_enabled=False):
         import os
         import sys
+
+        global SITE_URL
+        SITE_URL = site_url
 
         try:
             dataset = Package2Pod.export_map_fields(package, json_export_map, redaction_enabled)
@@ -81,6 +95,21 @@ class Package2Pod(object):
     def export_map_fields(package, json_export_map, redaction_enabled=False):
         import os
         import sys
+
+        # If already harvested DCAT-US format, it should already be validated; use original
+        try:
+            harvest_object_id = helpers.get_extra(package, 'harvest_object_id')
+            bureau_code = helpers.get_extra(package, 'bureau_code')
+            # If harvested and has bureau code (only DCAT-US has this metadata field)
+            if harvest_object_id and bureau_code:
+                harvest_obj = tk.get_action('harvest_object_show')({}, {'id': harvest_object_id})
+                parsed_obj = json.loads(harvest_obj['content'], object_pairs_hook=collections.OrderedDict)
+                return parsed_obj
+        except Exception as e:
+            # Something went wrong getting the harvest object, log and attempt package build
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            filename = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            log.error("%s : %s : %s : %s", exc_type, filename, exc_tb.tb_lineno, e)
 
         public_access_level = helpers.get_extra(package, 'public_access_level')
         if not public_access_level or public_access_level not in ['non-public', 'restricted public']:
@@ -224,6 +253,8 @@ class Wrappers(object):
     full_field_map = None
     bureau_code_list = None
     resource_formats = None
+    modified_date = None
+    ckan_identifier = None
 
     @staticmethod
     def catalog_publisher(value):
@@ -361,7 +392,8 @@ class Wrappers(object):
                                     package.get('maintainer_email'))
 
             if email and not helpers.is_redacted(email) and '@' in email:
-                email = 'mailto:' + email
+                if 'mailto:' not in email:
+                    email = 'mailto:' + email
 
             if Wrappers.redaction_enabled:
                 redaction_reason = helpers.get_extra(package, 'redacted_' + contact_point_map.get('hasEmail').get('field'),
@@ -374,9 +406,32 @@ class Wrappers(object):
             contact_point = OrderedDict([('@type', 'vcard:Contact')])
             if fn:
                 contact_point['fn'] = fn
-            if email:
-                contact_point['hasEmail'] = email
+            else:
+                contact_point['fn'] = package.get('organization').get('title')
 
+            def get_default_email():
+                org_extras = toolkit.get_action('organization_show')(None, {
+                    'id': package.get('organization').get('name')
+                })['extras']
+                for entry in org_extras:
+                    for key, value in entry.items():
+                        if entry[key] == 'default_org_email':
+                            default_email = entry['value']
+                return default_email if 'mailto:' in default_email else 'mailto:' + default_email
+
+            if email:
+                if re.search('^mailto:[\w\_\~\!\$\&\'\(\)\*\+\,\;\=\:.-]+@[\w.-]+\.[\w.-]+?$', email):
+                    contact_point['hasEmail'] = email
+                else:
+                    try:
+                        contact_point['hasEmail'] = get_default_email()
+                    except Exception:
+                        contact_point['hasEmail'] = ''
+            else:
+                try:
+                    contact_point['hasEmail'] = get_default_email()
+                except Exception:
+                    contact_point['hasEmail'] = ''
             return contact_point
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -400,12 +455,14 @@ class Wrappers(object):
 
         arr = []
         package = Wrappers.pkg
+        log.info(package.get('title'))
 
         distribution_map = Wrappers.full_field_map.get('distribution').get('map')
         if not distribution_map or 'resources' not in package:
             return arr
 
         for r in package["resources"]:
+            valid_resource = True
             resource = OrderedDict([('@type', "dcat:Distribution")])
 
             for pod_key, json_map in distribution_map.items():
@@ -436,25 +493,50 @@ class Wrappers(object):
                 res_url = Package2Pod.filter(res_url)
 
             if res_url:
-                res_url = res_url.replace('http://[[REDACTED', '[[REDACTED')
-                res_url = res_url.replace('http://http', 'http')
-                if r.get('resource_type') in ['api', 'accessurl']:
-                    resource['accessURL'] = res_url
+                try:
+                    res_url = res_url.replace('http://[[REDACTED', '[[REDACTED')
+                    res_url = res_url.replace('http://http', 'http')
                     if 'mediaType' in resource:
-                        resource.pop('mediaType')
-                else:
-                    if 'accessURL' in resource:
-                        resource.pop('accessURL')
-                    resource['downloadURL'] = res_url
-                    if 'mediaType' not in resource:
-                        log.warn("Missing mediaType for resource in package ['%s']", package.get('id'))
+                        if 'accessURL' in resource:
+                            resource.pop('accessURL')
+                        if not datajsonvalidator.check_url_field(True, resource, 'downloadURL', None, {}):
+                            valid_resource = False
+                    else:
+                        if not datajsonvalidator.check_url_field(True, resource, 'accessURL', None, {}):
+                            valid_resource = False
+                except Exception:
+                    valid_resource = False
+
             else:
                 log.warn("Missing downloadURL for resource in package ['%s']", package.get('id'))
 
             striped_resource = OrderedDict(
                 [(x, y) for x, y in resource.items() if y is not None and y != "" and y != []])
 
-            arr += [OrderedDict(striped_resource)]
+            if valid_resource:
+                arr += [OrderedDict(striped_resource)]
+
+        try:
+            for e in package['extras']:
+                if e['key'] == 'harvest_object_id':
+                    try:
+                        harvest_object_id = e['value']
+                    except Exception:
+                        log.warn('Could not find harvest object ID')
+                    # Get full harvest object
+                    context = {'model': model, 'user': p.toolkit.c.user or p.toolkit.c.author}
+                    harvest_obj = logic.get_action('harvest_object_show')(context, {'id': harvest_object_id})
+                    # Build full metadata link
+                    resource = OrderedDict([('@type', "dcat:Distribution")])
+                    resource["title"] = "Original Metadata"
+                    resource["downloadURL"] = SITE_URL + "/harvest/object/" + harvest_obj['id']
+                    resource["conformsTo"] = "http://www.isotc211.org/2005/gmi"
+                    resource["description"] = "The metadata original source"
+                    resource["mediaType"] = "text/xml"
+                    resource["format"] = "XML"
+                    arr += [OrderedDict(resource)]
+        except Exception:
+            log.warn('Unable to get package extras')
 
         return arr
 
@@ -463,7 +545,9 @@ class Wrappers(object):
         if value:
             return value
 
-        if not 'organization' not in Wrappers.pkg or 'title' not in Wrappers.pkg.get('organization'):
+        if 'organization' not in Wrappers.pkg:
+            return None
+        if 'title' not in Wrappers.pkg.get('organization'):
             return None
         org_title = Wrappers.pkg.get('organization').get('title')
         log.debug("org title: %s", org_title)
@@ -471,6 +555,10 @@ class Wrappers(object):
         code_list = Wrappers._get_bureau_code_list()
 
         if org_title not in code_list:
+            default_bureau_code = Wrappers.full_field_map.get('bureauCode').get('default')
+            if default_bureau_code is not None:
+                log.debug("No match found, using default: %s", default_bureau_code)
+                return [default_bureau_code]
             return None
 
         bureau = code_list.get(org_title)
@@ -509,3 +597,15 @@ class Wrappers(object):
         msg = value + ' ... BECOMES ... ' + mime_type
         log.debug(msg)
         return mime_type
+
+    @staticmethod
+    def ckan_identifier(value):
+        if value:
+            return value
+        return Wrappers.pkg.get('id')
+
+    @staticmethod
+    def modified_date(value):
+        if value:
+            return value
+        return helpers.get_extra(Wrappers.pkg, 'metadata-date')

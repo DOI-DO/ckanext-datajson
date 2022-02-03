@@ -1,26 +1,26 @@
 from __future__ import print_function
+
 from future import standard_library
+
 standard_library.install_aliases()
 import json
-import six
 import zipfile
 
 import ckanext.harvest.model as harvest_model
-
+import six
 from ckan.tests import factories
-
 from ckan.tests.helpers import reset_db
-
 
 if six.PY2:
     from ckan.tests.helpers import FunctionalTestBase
     inherit = FunctionalTestBase
 else:
     inherit = object
-    from flask import Response
+
     import ckan.config.middleware
     from ckan.common import config
     from ckan.tests.helpers import CKANTestApp, CKANTestClient
+    from flask import Response
 
     class CKANZipTestApp(CKANTestApp):
         ''' Special Test App to allow Zip Files '''
@@ -69,6 +69,7 @@ class TestExport(inherit):
         d1 = dataset.copy()
         d1.update({'title': 'test 01 dataset', 'unique_id': 't1', 'extras': extra_for_draft})
         self.dataset1 = factories.Dataset(**d1)
+        print(self.dataset1)
         d2 = dataset.copy()
         d2.update({'title': 'test 02 dataset', 'unique_id': 't2'})
         self.dataset2 = factories.Dataset(**d2)
@@ -100,17 +101,23 @@ class TestExport(inherit):
             config["testing"] = True
             app = ckan.config.middleware.make_app(config)
             self.app = CKANZipTestApp(app)
-        url = '/organization/{}/draft.json'.format(self.organization['id'])
+        url = '/organization/{}/draft.json'.format(self.organization['name'])
+
         extra_environ = {'REMOTE_USER': self.user_name}
         res = self.app.get(url, extra_environ=extra_environ)
-
         # zip file
         zip_path = '/tmp/test.zip'
-        zf = open(zip_path, 'wb')
+        zf = zipfile.ZipFile(zip_path, 'w')
         if six.PY2:
-            zf.write(res.body)
+            # draft = open('draft_data.json', 'w')
+            # draft.write(json.dumps(res.body))
+            # draft.close()
+            zf.writestr('draft_data.json', res.body)
         else:
-            zf.write(res.data)
+            # draft = open('draft_data.json', 'w')
+            # draft.write(json.dumps(res.data))
+            # draft.close()
+            zf.writestr('draft_data.json', res.data)
         zf.close()
         zfile = zipfile.ZipFile(zip_path, 'r')
         for name in zfile.namelist():
@@ -153,6 +160,7 @@ class TestExport(inherit):
         } """  # NOQA
 
         data_res = json.loads(raw)
+        print('data res {}'.format(data_res))
         datasets = data_res['dataset']
         titles = [d['title'] for d in datasets]
 
@@ -167,6 +175,7 @@ class TestExport(inherit):
 
         # create datasets
         self.create_datasets()
+        print(self.dataset5)
 
         if six.PY2:
             self.app = self._get_test_app()
@@ -175,18 +184,19 @@ class TestExport(inherit):
             config["testing"] = True
             app = ckan.config.middleware.make_app(config)
             self.app = CKANZipTestApp(app)
-        url = '/organization/{}/data.json'.format(self.organization['id'])
+        url = '/organization/{}/data.json'.format(self.organization['name'])
         extra_environ = {'REMOTE_USER': self.user_name}
         res = self.app.get(url, extra_environ=extra_environ)
-
         if six.PY2:
             data_json = json.loads(res.body)
         else:
             data_json = json.loads(res.data)
-        datasets = [data_json['dataset'][i]['title'] for i in range(0, 5)]
 
-        assert self.dataset1['title'] in datasets
-        assert self.dataset2['title'] in datasets
-        assert self.dataset3['title'] in datasets
-        assert self.dataset4['title'] in datasets
-        assert self.dataset5['title'] in datasets
+        datasets = data_json['dataset']
+        titles = [datasets[i]['title'] for i in range(len(datasets))]
+        print(data_json)
+        assert self.dataset1['title'] in titles
+        assert self.dataset2['title'] in titles
+        assert self.dataset3['title'] in titles
+        assert self.dataset4['title'] in titles
+        assert self.dataset5['title'] in titles

@@ -9,6 +9,10 @@ from ckan.plugins import toolkit
 
 class HarvestSource(factory.Factory):
     FACTORY_FOR = harvest_model.HarvestSource
+
+    class Meta:
+        model = harvest_model.HarvestSource
+
     _return_type = 'dict'
 
     name = factory.Sequence(lambda n: 'test_source_{n}'.format(n=n))
@@ -27,7 +31,7 @@ class HarvestSource(factory.Factory):
         try:
             source_dict = toolkit.get_action('harvest_source_show')(
                 context, dict(url=kwargs['url']))
-        except (KeyError, toolkit.ObjectNotFound), e:
+        except (KeyError, toolkit.ObjectNotFound):
             source_dict = toolkit.get_action('harvest_source_create')(
                 context, kwargs)
         if cls._return_type == 'dict':
@@ -45,6 +49,10 @@ class HarvestSourceObj(HarvestSource):
 
 class HarvestJob(factory.Factory):
     FACTORY_FOR = harvest_model.HarvestJob
+
+    class Meta:
+        model = harvest_model.HarvestJob
+
     _return_type = 'dict'
 
     source = factory.SubFactory(HarvestSourceObj)
@@ -72,6 +80,10 @@ class HarvestJobObj(HarvestJob):
 
 class HarvestObject(factory.Factory):
     FACTORY_FOR = harvest_model.HarvestObject
+
+    class Meta:
+        model = harvest_model.HarvestObject
+
     _return_type = 'dict'
 
     # source = factory.SubFactory(HarvestSourceObj)
